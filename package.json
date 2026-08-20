@@ -10,11 +10,13 @@
     "preview": "vite preview",
     "macos": "electron electron/main.cjs",
     "app": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron electron/main.cjs\"",
-    "open": "open http://localhost:5173"
+    "open": "open http://localhost:5173",
+    "deploy": "vite build && gh-pages -d dist --dotfiles --nojekyll"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "electron": "^31.3.1",
+    "gh-pages": "^6.3.0",
     "vite": "^5.4.1",
     "wait-on": "^7.2.0"
   },
