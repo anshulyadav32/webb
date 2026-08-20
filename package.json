@@ -1,0 +1,25 @@
+{
+  "name": "webbuddy-browser",
+  "private": true,
+  "version": "1.0.0",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "macos": "electron electron/main.cjs",
+    "app": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron electron/main.cjs\"",
+    "open": "open http://localhost:5173"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^31.3.1",
+    "vite": "^5.4.1",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.3",
+    "lucide": "^0.439.0"
+  }
+}
