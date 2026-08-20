@@ -182,6 +182,125 @@ export const DEFAULT_SEARCH_ENGINES = [
 ];
 
 export const MOCK_WEB_PAGES = {
+  'youtube.com': {
+    title: 'YouTube - High-Speed Rust Microservices & IoT Engineering',
+    url: 'https://youtube.com',
+    domain: 'youtube.com',
+    favicon: 'youtube',
+    adsBlocked: 2,
+    trackersBlocked: 16,
+    content: `
+      <div class="yt-container" style="display:flex; flex-direction:column; gap:20px;">
+        <!-- YouTube Header Banner -->
+        <div style="display:flex; align-items:center; justify-content:space-between; background:#181818; padding:12px 20px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="background:#FF0000; width:32px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px;">▶</div>
+            <span style="font-size:18px; font-weight:800; color:#fff; letter-spacing:-0.5px;">YouTube</span>
+            <span style="background:rgba(0,242,254,0.15); color:#00F2FE; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">🛡️ AdBlock Protected (0 Ads)</span>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span style="color:#10B981; font-size:12px; font-weight:600;">⚡ 2 Pre-Roll Video Ads Skipped</span>
+          </div>
+        </div>
+
+        <!-- Main Video & Sidebar Grid -->
+        <div style="display:grid; grid-template-columns: 1fr 340px; gap:24px;">
+          <!-- Left: Video Player & Details -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; box-shadow:0 12px 36px rgba(0,0,0,0.6);">
+              <video 
+                id="mainYtVideoPlayer" 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+                controls 
+                autoplay 
+                muted
+                style="width:100%; height:100%; object-fit:cover;"
+              ></video>
+              <div style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.75); backdrop-filter:blur(8px); padding:4px 10px; border-radius:6px; font-size:11px; color:#10B981; font-weight:700; border:1px solid rgba(16,185,129,0.3);">
+                ✓ WebBuddy Ad Shield: No Video Ads
+              </div>
+            </div>
+
+            <!-- Video Info -->
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <h1 style="font-size:20px; font-weight:700; color:#fff; line-height:1.4;">
+                Full Rust Platform Architecture: Axum 0.7 API Gateway, Tokio Concurrency & IoT BLE
+              </h1>
+              
+              <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08);">
+                <!-- Channel Info -->
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #00F2FE 0%, #7F00FF 100%); display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff;">WB</div>
+                  <div>
+                    <div style="font-size:14px; font-weight:700; color:#fff;">WebBuddy Tech Labs</div>
+                    <div style="font-size:12px; color:var(--text-muted);">248K subscribers</div>
+                  </div>
+                  <button style="margin-left:8px; background:#fff; color:#000; border:none; padding:8px 16px; border-radius:20px; font-weight:700; font-size:13px; cursor:pointer;">Subscribe</button>
+                </div>
+
+                <!-- Video Action Buttons -->
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); padding:8px 16px; border-radius:20px; color:#fff; font-size:13px; font-weight:600; cursor:pointer;">
+                    👍 18.4K
+                  </button>
+                  <button style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); padding:8px 16px; border-radius:20px; color:#fff; font-size:13px; font-weight:600; cursor:pointer;">
+                    ↗ Share
+                  </button>
+                  <button style="display:flex; align-items:center; gap:6px; background:rgba(255,64,129,0.15); border:1px solid rgba(255,64,129,0.3); padding:8px 16px; border-radius:20px; color:#FF4081; font-size:13px; font-weight:700; cursor:pointer;" id="ytDownloadBtn" title="Download video with Motrix">
+                    📥 Download (Motrix)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Description Box -->
+              <div style="background:#1F1F1F; padding:14px; border-radius:10px; font-size:13px; color:var(--text-secondary); line-height:1.6;">
+                <div style="font-weight:700; color:#fff; margin-bottom:4px;">142,890 views • Streamed live in 4K HDR</div>
+                Deep dive into high-performance backend architecture using Rust, Axum 0.7, PostgreSQL 16 SQLx, Redis caching, Bluetooth BLE hardware control, and SuperMemo SM-2 spaced repetition algorithms.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Recommended Videos Feed -->
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:4px;">Recommended for You</div>
+            
+            <div style="display:flex; gap:10px; cursor:pointer;">
+              <div style="width:120px; aspect-ratio:16/9; background:#222; border-radius:6px; overflow:hidden; position:relative; flex-shrink:0;">
+                <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=240" style="width:100%; height:100%; object-fit:cover;" />
+                <span style="position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,0.8); font-size:10px; padding:1px 4px; border-radius:3px; color:#fff;">14:20</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="font-size:12px; font-weight:600; color:#fff; line-height:1.3;">Bluetooth Low Energy & ESP32-S3 in Rust</div>
+                <div style="font-size:11px; color:var(--text-muted);">IoT Masters • 48K views</div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; cursor:pointer;">
+              <div style="width:120px; aspect-ratio:16/9; background:#222; border-radius:6px; overflow:hidden; position:relative; flex-shrink:0;">
+                <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=240" style="width:100%; height:100%; object-fit:cover;" />
+                <span style="position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,0.8); font-size:10px; padding:1px 4px; border-radius:3px; color:#fff;">22:45</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="font-size:12px; font-weight:600; color:#fff; line-height:1.3;">Building Next-Gen Adaptive Exam Engines</div>
+                <div style="font-size:11px; color:var(--text-muted);">StudyBuddy Engineering • 92K views</div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; cursor:pointer;">
+              <div style="width:120px; aspect-ratio:16/9; background:#222; border-radius:6px; overflow:hidden; position:relative; flex-shrink:0;">
+                <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=240" style="width:100%; height:100%; object-fit:cover;" />
+                <span style="position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,0.8); font-size:10px; padding:1px 4px; border-radius:3px; color:#fff;">18:10</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="font-size:12px; font-weight:600; color:#fff; line-height:1.3;">Sub-Millisecond Packet Filtering with Aho-Corasick</div>
+                <div style="font-size:11px; color:var(--text-muted);">Privacy Labs • 110K views</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
   'google.com': {
     title: 'Google Search',
     url: 'https://www.google.com',
@@ -369,6 +488,56 @@ assert!(engine.should_block("https://facebook.com/tr/"));       // Blocked!</cod
   }
 };
 
+export const DEFAULT_MOTRIX_TASKS = [
+  {
+    gid: 'm-task-1',
+    filename: 'ubuntu-24.04-desktop-amd64.iso',
+    url: 'https://releases.ubuntu.com/24.04/ubuntu-24.04-desktop-amd64.iso',
+    type: 'direct', // 'direct' | 'torrent' | 'magnet'
+    status: 'active', // 'active' | 'paused' | 'complete' | 'error'
+    totalLength: 6144000000, // 5.72 GB
+    completedLength: 4210000000, // 3.92 GB
+    downloadSpeed: 18450000, // 17.6 MB/s
+    uploadSpeed: 0,
+    connections: 16,
+    eta: 104, // seconds
+    progress: 68.5,
+    addedAt: Date.now() - 120000
+  },
+  {
+    gid: 'm-task-2',
+    filename: 'blender-4.2.0-macos-arm64.dmg',
+    url: 'https://download.blender.org/release/Blender4.2/blender-4.2.0-macos-arm64.dmg',
+    type: 'direct',
+    status: 'complete',
+    totalLength: 346000000, // 330 MB
+    completedLength: 346000000,
+    downloadSpeed: 0,
+    uploadSpeed: 0,
+    connections: 16,
+    eta: 0,
+    progress: 100,
+    addedAt: Date.now() - 900000
+  },
+  {
+    gid: 'm-task-3',
+    filename: 'archlinux-2024.08.01-x86_64.iso',
+    url: 'magnet:?xt=urn:btih:archlinux-2024-08-01&dn=archlinux-2024.08.01-x86_64.iso',
+    type: 'torrent',
+    status: 'active',
+    totalLength: 1180000000, // 1.1 GB
+    completedLength: 512000000, // 488 MB
+    downloadSpeed: 12800000, // 12.2 MB/s
+    uploadSpeed: 2100000, // 2.0 MB/s
+    seeders: 84,
+    peers: 142,
+    connections: 32,
+    eta: 52,
+    progress: 43.4,
+    addedAt: Date.now() - 60000
+  }
+];
+
 export const SEARCH_RESULTS_MOCK = {
   'default': {
     query: 'search',
@@ -382,12 +551,9 @@ export const SEARCH_RESULTS_MOCK = {
         title: 'How Native Ad Blocking Protects Web Privacy',
         url: 'https://privacyguides.org/adblocking',
         snippet: 'Detailed breakdown of filter lists, EasyList rules, network request interception, and anti-fingerprinting farbling.'
-      },
-      {
-        title: 'Electronic Frontier Foundation (EFF) - Surveillance Tracker Defense',
-        url: 'https://eff.org',
-        snippet: 'Defending digital privacy and fighting against pervasive cross-site advertising networks.'
       }
     ]
   }
 };
+
+

@@ -4,8 +4,9 @@ import './styles/ntp.css';
 import './styles/modals.css';
 import './styles/brave-search.css';
 import './styles/web-viewer.css';
-import './styles/notes-sidebar.css';
+import './styles/tab-groups-sidebar.css';
 import './styles/video-controls.css';
+import './styles/motrix.css';
 
 import { store } from './state/store.js';
 import { initTabBar } from './components/TabBar.js';
@@ -17,11 +18,12 @@ import { initWebViewer } from './components/WebViewer.js';
 import { initShieldsModal } from './components/ShieldsModal.js';
 import { initSettingsModal } from './components/SettingsModal.js';
 import { initAddShortcutModal } from './components/AddShortcutModal.js';
-import { initNotesSidebar } from './components/NotesSidebar.js';
+import { initTabGroupsSidebar } from './components/TabGroupsSidebar.js';
 import { initVideoControlModal } from './components/VideoControlModal.js';
 import { initFloatingPipPlayer } from './components/FloatingPipPlayer.js';
 import { initCircuitModal } from './components/CircuitModal.js';
 import { initTabGroupModal } from './components/TabGroupModal.js';
+import { initMotrixModal } from './components/MotrixModal.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const app = document.getElementById('app');
@@ -37,8 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- Main Viewport Router Container -->
     <main id="mainViewport" style="flex:1; display:flex; position:relative; overflow:hidden;">
-      <!-- Left Notes Sidebar -->
-      <aside id="notesSidebarContainer" class="notes-sidebar"></aside>
+      <!-- Left Safari Tab Groups & Notes Unified Sidebar -->
+      <aside id="sidebarContainer" class="unified-sidebar-drawer"></aside>
 
       <!-- Main Center Content -->
       <div id="ntpContainer" style="width:100%; height:100%; display:flex;"></div>
@@ -56,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="addShortcutModalContainer"></div>
     <div id="circuitModalContainer"></div>
     <div id="tabGroupModalContainer"></div>
+    <div id="motrixModalContainer"></div>
   `;
 
   // Initialize modular components
@@ -68,11 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initShieldsModal(document.getElementById('shieldsModalContainer'));
   initSettingsModal(document.getElementById('settingsModalContainer'));
   initAddShortcutModal(document.getElementById('addShortcutModalContainer'));
-  initNotesSidebar(document.getElementById('notesSidebarContainer'));
+  initTabGroupsSidebar(document.getElementById('sidebarContainer'));
   initVideoControlModal(document.getElementById('videoControlModalContainer'));
   initFloatingPipPlayer(document.getElementById('floatingPipContainer'));
   initCircuitModal(document.getElementById('circuitModalContainer'));
   initTabGroupModal(document.getElementById('tabGroupModalContainer'));
+  initMotrixModal(document.getElementById('motrixModalContainer'));
 
   // Global Keyboard Shortcuts (Browser + Modes + Groups + Video Controls)
   window.addEventListener('keydown', (e) => {
@@ -104,6 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Ctrl/Cmd + J: Toggle Motrix Downloads Hub
+    if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'j') {
+      e.preventDefault();
+      store.openMotrixModal();
+      return;
+    }
+
     // Ctrl/Cmd + T: New Tab
     if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 't') {
       e.preventDefault();
@@ -127,10 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return;
     }
-    // Ctrl/Cmd + N: Toggle Notes Sidebar
+    // Ctrl/Cmd + N: Toggle Safari Tab Groups Sidebar
     if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'n') {
       e.preventDefault();
-      store.toggleNotesSidebar();
+      store.toggleSidebar();
       return;
     }
     // Ctrl/Cmd + S: Toggle Shields Modal
@@ -139,8 +150,12 @@ document.addEventListener('DOMContentLoaded', () => {
       store.openModal('shields');
       return;
     }
-    // Escape: Close active modals
+    // Escape: Close active modals or sidebar
     if (e.key === 'Escape') {
+      if (store.getState().isSidebarOpen) {
+        store.toggleSidebar(false);
+        return;
+      }
       store.closeModal();
       return;
     }

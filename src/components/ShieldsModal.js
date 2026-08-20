@@ -26,7 +26,12 @@ export function initShieldsModal(container) {
               ${getIcon('shield', '', 18)}
             </div>
             <div>
-              <div class="shields-header-title">Ad & Tracker Blocker</div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <div class="shields-header-title">Ad & Tracker Blocker</div>
+                <span style="background:rgba(247,76,0,0.2); border:1px solid rgba(247,76,0,0.5); color:#FF8A50; font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:10px; text-transform:uppercase; letter-spacing:0.5px; display:inline-flex; align-items:center; gap:3px;">
+                  <span style="font-size:11px;">🦀</span> Rust Core
+                </span>
+              </div>
               <div class="shields-header-sub">${escapeHtml(domain)}</div>
             </div>
           </div>

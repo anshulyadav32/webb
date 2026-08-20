@@ -69,17 +69,17 @@ export function initWebViewer(container) {
         domain: domain,
         trackersBlocked: 6,
         content: `
-          <div style="background:#181A26; border-radius:12px; border:1px solid rgba(255,255,255,0.08); padding:40px 24px; text-align:center; max-width:760px; margin:20px auto;">
-            <div style="font-size:48px; margin-bottom:16px;">🌐</div>
-            <h2 style="font-size:24px; margin-bottom:12px; color:#fff;">${escapeHtml(activeTab.title || domain)}</h2>
-            <p style="color:var(--text-secondary); max-width:540px; margin:0 auto 24px; line-height:1.6; font-size:14px;">
-              Connected securely to <code>${escapeHtml(activeTab.url)}</code> via WebBuddy Privacy Tunnel with sub-millisecond filtering and HTTPS upgrading enabled.
-            </p>
-            <div style="display:inline-flex; gap:14px; background:rgba(255,255,255,0.04); padding:12px 24px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); font-size:13px;">
-              <span style="color:#00F2FE;">🛡️ <strong>${blockedCount} trackers blocked</strong></span>
-              <span style="color:#10B981;">🔒 <strong>TLS 1.3 AES-GCM Encrypted</strong></span>
-              <span style="color:#A78BFA;">⚡ <strong>0.3ms Response</strong></span>
+          <div class="live-web-container" style="display:flex; flex-direction:column; gap:12px; height:100%;">
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#181A26; padding:8px 16px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); font-size:12px;">
+              <span style="color:#00F2FE; font-weight:700;">🌐 Live Protected Connection: ${escapeHtml(activeTab.url)}</span>
+              <span style="color:#10B981; font-weight:600;">🛡️ EasyList & EasyPrivacy Active (${blockedCount} ads & trackers neutralized)</span>
             </div>
+            <iframe 
+              class="web-live-frame" 
+              src="${activeTab.url}" 
+              style="width:100%; height:calc(100vh - 180px); border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:#fff;" 
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            ></iframe>
           </div>
         `
       };
@@ -278,15 +278,29 @@ export function initWebViewer(container) {
   }
 
   function setupEvents() {
-    // Intercept internal mock clicks
-    container.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', (e) => {
+    // Intercept all hyperlinks & search result clicks
+    container.querySelectorAll('a, [data-visit-url]').forEach(el => {
+      el.addEventListener('click', (e) => {
         e.preventDefault();
-        const href = link.getAttribute('href');
-        if (href && href !== '#') {
-          store.navigateToUrl(href);
+        e.stopPropagation();
+        const url = el.dataset.visitUrl || el.getAttribute('href');
+        if (url && url !== '#' && !url.startsWith('javascript:')) {
+          store.navigateToUrl(url);
         }
       });
+    });
+
+    // YouTube Download with Motrix
+    container.querySelector('#ytDownloadBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      store.addMotrixTask({
+        filename: 'Rust_Microservices_Axum_Tokio_4K.mp4',
+        url: 'https://youtube.com/watch?v=rust-axum-microservices',
+        totalLength: 780000000,
+        type: 'direct',
+      });
+      store.openModal('motrix');
     });
 
     // Handle search forms in web viewer
@@ -311,19 +325,11 @@ export function initWebViewer(container) {
 
     // Related search queries
     container.querySelectorAll('[data-search-query]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const q = btn.dataset.searchQuery;
-        store.navigateToUrl(q);
-      });
-    });
-
-    // Visit URL click
-    container.querySelectorAll('[data-visit-url]').forEach(el => {
-      el.addEventListener('click', (e) => {
+      btn.addEventListener('click', (e) => {
         e.preventDefault();
-        const url = el.dataset.visitUrl;
-        if (url) {
-          store.navigateToUrl(url);
+        const q = btn.dataset.searchQuery;
+        if (q) {
+          store.navigateToUrl(q);
         }
       });
     });

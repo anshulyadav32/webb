@@ -2,23 +2,23 @@
   "name": "webbuddy-browser",
   "private": true,
   "version": "1.0.0",
-  "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "macos": "electron electron/main.cjs",
-    "app": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron electron/main.cjs\"",
+    "tauri": "tauri",
+    "app": "tauri dev",
+    "macos": "tauri dev",
+    "build:app": "tauri build",
     "open": "open http://localhost:5173",
     "deploy": "vite build && gh-pages -d dist --dotfiles --nojekyll"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "electron": "^31.3.1",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/cli": "^2.11.4",
     "gh-pages": "^6.3.0",
-    "vite": "^5.4.1",
-    "wait-on": "^7.2.0"
+    "vite": "^5.4.1"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3",

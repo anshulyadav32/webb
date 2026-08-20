@@ -1,0 +1,481 @@
+/* Motrix Download Manager Styles */
+
+.motrix-modal-wrapper {
+  width: 900px;
+  max-width: 94vw;
+  height: 640px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #11121B;
+  border: 1px solid rgba(255, 64, 129, 0.25);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 64, 129, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.motrix-header {
+  padding: 16px 22px;
+  background: linear-gradient(135deg, rgba(255, 82, 82, 0.12) 0%, rgba(124, 77, 255, 0.12) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.motrix-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.motrix-logo-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 8px rgba(255, 64, 129, 0.4));
+}
+
+.motrix-title-box h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.motrix-title-box p {
+  font-size: 11px;
+  color: #94A3B8;
+  margin: 2px 0 0 0;
+}
+
+.motrix-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.motrix-status-pill.online {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ADE80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.motrix-status-pill.offline {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.motrix-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Speed Meter Pill */
+.motrix-speed-pill {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 14px;
+  border-radius: 10px;
+}
+
+.speed-metric {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.speed-metric.down {
+  color: #00F2FE;
+}
+
+.speed-metric.up {
+  color: #C084FC;
+}
+
+/* Toolbar Controls */
+.motrix-toolbar {
+  padding: 12px 22px;
+  background: #141624;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.motrix-tabs-nav {
+  display: flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.motrix-tab-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.motrix-tab-btn:hover {
+  color: #FFF;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.motrix-tab-btn.active {
+  background: linear-gradient(135deg, #FF4081 0%, #7C4DFF 100%);
+  color: #FFF;
+  box-shadow: 0 2px 10px rgba(255, 64, 129, 0.3);
+}
+
+.motrix-tab-count {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+.motrix-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-motrix-primary {
+  background: linear-gradient(135deg, #FF5252 0%, #FF4081 50%, #7C4DFF 100%);
+  color: #FFF;
+  border: none;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(255, 64, 129, 0.3);
+}
+
+.btn-motrix-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(255, 64, 129, 0.5);
+}
+
+.btn-motrix-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #E2E8F0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 500;
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-motrix-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFF;
+}
+
+/* Task List Body */
+.motrix-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.motrix-empty-state {
+  margin: auto;
+  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #64748B;
+}
+
+.motrix-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+}
+
+/* Task Card */
+.motrix-task-card {
+  background: #181A29;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.motrix-task-card:hover {
+  border-color: rgba(255, 64, 129, 0.35);
+  background: #1C1E30;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.motrix-task-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.motrix-file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.motrix-type-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255, 64, 129, 0.15) 0%, rgba(124, 77, 255, 0.15) 100%);
+  border: 1px solid rgba(255, 64, 129, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FF4081;
+  flex-shrink: 0;
+}
+
+.motrix-type-badge.torrent {
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(56, 189, 248, 0.15) 100%);
+  border-color: rgba(0, 242, 254, 0.3);
+  color: #00F2FE;
+}
+
+.motrix-filename-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.motrix-filename {
+  font-size: 13px;
+  font-weight: 600;
+  color: #F1F5F9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.motrix-source-url {
+  font-size: 11px;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.motrix-task-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.motrix-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94A3B8;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.motrix-action-btn:hover {
+  background: rgba(255, 64, 129, 0.2);
+  border-color: rgba(255, 64, 129, 0.4);
+  color: #FFF;
+}
+
+.motrix-action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+}
+
+/* Progress bar */
+.motrix-progress-wrapper {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.motrix-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #FF5252 0%, #FF4081 50%, #7C4DFF 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.motrix-progress-bar.completed {
+  background: #10B981;
+}
+
+.motrix-progress-bar.paused {
+  background: #F59E0B;
+}
+
+.motrix-task-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #94A3B8;
+}
+
+.motrix-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.motrix-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Add Task Flyout / Modal */
+.motrix-dialog-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 11, 18, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.motrix-dialog {
+  width: 520px;
+  max-width: 100%;
+  background: #161828;
+  border: 1px solid rgba(255, 64, 129, 0.3);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.motrix-dialog-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.motrix-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.motrix-input-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #CBD5E1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.motrix-input-group input,
+.motrix-input-group textarea {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #F8FAFC;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.motrix-input-group input:focus,
+.motrix-input-group textarea:focus {
+  border-color: #FF4081;
+  box-shadow: 0 0 0 2px rgba(255, 64, 129, 0.2);
+}
+
+.motrix-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}

@@ -25,6 +25,8 @@ dist-ssr/
 dist-electron/
 out/
 release/
+target/
+src-tauri/target/
 
 # Local env files
 .env

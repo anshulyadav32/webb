@@ -3,29 +3,30 @@ import { getIcon } from './Icons.js';
 
 export function initTabBar(container) {
   let activeContextMenu = null;
-  let activeGroupMenuId = null;
+  let isSafariMenuOpen = false;
 
   function render() {
     const state = store.getState();
     const currentMode = store.getBrowserMode();
     const visibleTabs = store.getVisibleTabs();
+    const allModeTabs = store.getAllModeTabs();
     const tabGroups = store.getTabGroups();
+    const activeGroup = store.getActiveTabGroup();
+    const activeTab = store.getActiveTab();
 
-    // Group tabs by groupId
-    const groupedTabs = {};
-    const ungroupedTabs = [];
-
+    // Group tabs by groupId for stats
+    const groupedTabsCount = {};
     tabGroups.forEach(g => {
-      groupedTabs[g.id] = [];
+      groupedTabsCount[g.id] = 0;
     });
-
-    visibleTabs.forEach(tab => {
-      if (tab.groupId && groupedTabs[tab.groupId]) {
-        groupedTabs[tab.groupId].push(tab);
-      } else {
-        ungroupedTabs.push(tab);
+    allModeTabs.forEach(tab => {
+      if (tab.groupId && groupedTabsCount[tab.groupId] !== undefined) {
+        groupedTabsCount[tab.groupId]++;
       }
     });
+
+    const activeGroupColor = activeGroup ? activeGroup.color : '#00F2FE';
+    const activeGroupTabsCount = activeGroup ? (groupedTabsCount[activeGroup.id] || 0) : allModeTabs.length;
 
     container.innerHTML = `
       <div class="window-top-bar ${currentMode !== 'standard' ? 'mode-' + currentMode : ''}">
@@ -35,97 +36,223 @@ export function initTabBar(container) {
           <div class="traffic-light maximize" title="Zoom"></div>
         </div>
 
+        <button class="safari-sidebar-toggle-btn ${state.isSidebarOpen ? 'active' : ''}" id="topBarSidebarToggleBtn" title="Toggle Safari Tab Groups Sidebar (Cmd+N)">
+          ${getIcon('safari-sidebar', '', 14)}
+        </button>
+
         <div class="brand-top-badge" id="brandHomeBtn" title="WebBuddy Browser - Home">
           ${getIcon('webbuddy-logo', '', 18)}
           <span class="brand-top-name">WebBuddy</span>
         </div>
 
-        <!-- Mode Switcher: Standard / Incognito / Super Private -->
-        <div class="browser-mode-switcher" id="modeSwitcher">
-          <button class="mode-tab-btn ${currentMode === 'standard' ? 'active' : ''}" data-set-mode="standard" title="Standard Browsing Workspace">
-            ${getIcon('globe', '', 12)}
-            <span>Standard</span>
+        <!-- Safari-Style Unified Single Tab Group & Mode Button -->
+        <div class="safari-group-wrapper">
+          <button 
+            class="safari-tab-group-btn ${activeGroup ? 'active-group-mode' : ''} ${isSafariMenuOpen ? 'open' : ''}" 
+            id="safariTabGroupBtn" 
+            style="${activeGroup ? `--active-group-color: ${activeGroup.color}; --active-group-glow: ${activeGroup.color}40;` : ''}"
+            title="Safari Workspaces & Browsing Modes: Click to switch modes or tab groups"
+          >
+            <span class="safari-btn-icon">
+              ${activeGroup 
+                ? `<span class="group-color-dot" style="background:${activeGroup.color}; box-shadow:0 0 8px ${activeGroup.color};"></span>` 
+                : currentMode === 'incognito'
+                ? getIcon('mask', '', 13)
+                : currentMode === 'super-pvt'
+                ? getIcon('onion', '', 13)
+                : getIcon('safari-tabs', '', 13)}
+            </span>
+            <span class="safari-group-name">${activeGroup ? escapeHtml(activeGroup.name) : currentMode === 'incognito' ? 'Incognito' : currentMode === 'super-pvt' ? 'Super Private' : 'All Tabs'}</span>
+            <span class="safari-group-badge">${activeGroup ? `${activeGroupTabsCount}` : `${allModeTabs.length}`}</span>
+            <span class="safari-chevron">${getIcon('chevron-down', '', 10)}</span>
           </button>
 
-          <button class="mode-tab-btn incognito-btn ${currentMode === 'incognito' ? 'active' : ''}" data-set-mode="incognito" title="Incognito Mode - Ephemeral RAM, Zero History (Cmd+Shift+N)">
-            ${getIcon('mask', '', 12)}
-            <span>Incognito</span>
-          </button>
+          <!-- Safari Dropdown Popover Menu -->
+          <div class="safari-group-menu" id="safariGroupMenu" style="display: ${isSafariMenuOpen ? 'block' : 'none'};">
+            
+            <!-- Browsing Privacy Modes -->
+            <div class="safari-menu-section-title">BROWSING PRIVACY MODES</div>
+            <div class="safari-menu-item ${currentMode === 'standard' ? 'selected' : ''}" data-set-mode="standard">
+              <span class="safari-item-icon">${getIcon('globe', '', 14)}</span>
+              <div class="safari-item-info">
+                <span class="safari-item-title">Standard Browsing</span>
+                <span class="safari-item-sub">Default persistent session</span>
+              </div>
+              ${currentMode === 'standard' ? `<span class="safari-check-mark">${getIcon('check', '', 13)}</span>` : ''}
+            </div>
 
-          <button class="mode-tab-btn super-pvt-btn ${currentMode === 'super-pvt' ? 'active' : ''}" data-set-mode="super-pvt" title="Super Private Tor Mode - Onion Encrypted Multi-Hop (Cmd+Shift+P)">
-            ${getIcon('onion', '', 12)}
-            <span>Super Pvt</span>
-          </button>
+            <div class="safari-menu-item incognito-item ${currentMode === 'incognito' ? 'selected' : ''}" data-set-mode="incognito">
+              <span class="safari-item-icon" style="color:#A78BFA;">${getIcon('mask', '', 14)}</span>
+              <div class="safari-item-info">
+                <span class="safari-item-title">Incognito Mode</span>
+                <span class="safari-item-sub">Ephemeral RAM, zero history</span>
+              </div>
+              <span class="safari-shortcut-badge">Cmd+Shift+N</span>
+              ${currentMode === 'incognito' ? `<span class="safari-check-mark">${getIcon('check', '', 13)}</span>` : ''}
+            </div>
+
+            <div class="safari-menu-item super-pvt-item ${currentMode === 'super-pvt' ? 'selected' : ''}" data-set-mode="super-pvt">
+              <span class="safari-item-icon" style="color:#C084FC;">${getIcon('onion', '', 14)}</span>
+              <div class="safari-item-info">
+                <span class="safari-item-title">Super Private (Tor)</span>
+                <span class="safari-item-sub">Onion encrypted multi-hop</span>
+              </div>
+              <span class="safari-shortcut-badge">Cmd+Shift+P</span>
+              ${currentMode === 'super-pvt' ? `<span class="safari-check-mark">${getIcon('check', '', 13)}</span>` : ''}
+            </div>
+
+            <div class="safari-menu-divider"></div>
+
+            <div class="safari-menu-section-title">TAB WORKSPACES & GROUPS</div>
+
+            <!-- All Open Tabs Option -->
+            <div class="safari-menu-item ${!activeGroup ? 'selected' : ''}" data-switch-group="all">
+              <span class="safari-item-icon">${getIcon('globe', '', 14)}</span>
+              <div class="safari-item-info">
+                <span class="safari-item-title">All Open Tabs</span>
+                <span class="safari-item-sub">${allModeTabs.length} ${allModeTabs.length === 1 ? 'tab' : 'tabs'} total</span>
+              </div>
+              ${!activeGroup ? `<span class="safari-check-mark">${getIcon('check', '', 13)}</span>` : ''}
+            </div>
+
+            <div class="safari-menu-divider"></div>
+
+            <!-- Tab Groups List -->
+            ${tabGroups.length > 0 ? `
+              <div class="safari-menu-group-list">
+                ${tabGroups.map(group => {
+                  const count = groupedTabsCount[group.id] || 0;
+                  const isSelected = activeGroup && activeGroup.id === group.id;
+                  return `
+                    <div class="safari-menu-item group-item ${isSelected ? 'selected' : ''}" data-switch-group="${group.id}">
+                      <span class="group-color-dot" style="background:${group.color}; box-shadow: 0 0 6px ${group.color};"></span>
+                      <div class="safari-item-info">
+                        <span class="safari-item-title">${escapeHtml(group.name)}</span>
+                        <span class="safari-item-sub">${count} ${count === 1 ? 'tab' : 'tabs'}</span>
+                      </div>
+                      ${isSelected ? `<span class="safari-check-mark">${getIcon('check', '', 13)}</span>` : ''}
+                      <div class="safari-item-actions">
+                        <button class="safari-action-icon edit-grp-btn" data-edit-group="${group.id}" title="Edit Group Name & Color">
+                          ${getIcon('edit', '', 12)}
+                        </button>
+                        <button class="safari-action-icon delete-grp-btn" data-delete-group="${group.id}" title="Delete / Ungroup">
+                          ${getIcon('close', '', 12)}
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `
+              <div class="safari-menu-empty-hint">No tab groups yet</div>
+            `}
+
+            <div class="safari-menu-divider"></div>
+
+            <!-- Actions -->
+            <div class="safari-menu-item action-item" id="safariNewEmptyGroupBtn">
+              <span class="safari-item-icon plus-icon">${getIcon('plus', '', 14)}</span>
+              <span>New Empty Tab Group...</span>
+              <span class="safari-shortcut-badge">Cmd+Shift+G</span>
+            </div>
+
+            <div class="safari-menu-item action-item" id="safariNewGroupWithCurrentBtn">
+              <span class="safari-item-icon">${getIcon('folder-plus', '', 14)}</span>
+              <span>New Group with Current Tab</span>
+            </div>
+
+            <div class="safari-menu-item action-item" id="safariNewGroupWithAllBtn">
+              <span class="safari-item-icon">${getIcon('tab-groups', '', 14)}</span>
+              <span>New Group with All Open Tabs (${allModeTabs.length})</span>
+            </div>
+
+            ${activeTab && tabGroups.length > 0 ? `
+              <div class="safari-menu-submenu-wrapper">
+                <div class="safari-menu-item action-item">
+                  <span class="safari-item-icon">${getIcon('layers', '', 14)}</span>
+                  <span>Move Current Tab to</span>
+                  <span style="margin-left:auto; font-size:12px; opacity:0.6;">›</span>
+                </div>
+                <div class="safari-submenu">
+                  ${tabGroups.map(g => `
+                    <div class="safari-menu-item ${activeTab.groupId === g.id ? 'selected' : ''}" data-move-current-to="${g.id}">
+                      <span class="group-color-dot" style="background:${g.color};"></span>
+                      <span>${escapeHtml(g.name)}</span>
+                      ${activeTab.groupId === g.id ? `<span class="safari-check-mark">${getIcon('check', '', 12)}</span>` : ''}
+                    </div>
+                  `).join('')}
+                  ${activeTab.groupId ? `
+                    <div class="safari-menu-divider"></div>
+                    <div class="safari-menu-item danger" id="safariRemoveCurrentFromGroup">
+                      ${getIcon('close', '', 12)}
+                      <span>Remove from Group</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
+
+            ${activeGroup ? `
+              <div class="safari-menu-divider"></div>
+              <div class="safari-menu-item danger" id="safariUngroupCurrentGroupBtn">
+                <span class="safari-item-icon">${getIcon('layers', '', 14)}</span>
+                <span>Ungroup Tabs in "${escapeHtml(activeGroup.name)}"</span>
+              </div>
+              <div class="safari-menu-item danger" id="safariCloseGroupTabsBtn">
+                <span class="safari-item-icon">${getIcon('trash-2', '', 14)}</span>
+                <span>Close All Tabs in Group</span>
+              </div>
+            ` : ''}
+          </div>
         </div>
 
         <!-- Tab Strip -->
         <div class="tab-strip" id="tabStrip">
-          <!-- Render Tab Groups with their Tabs -->
-          ${tabGroups.map(group => {
-            const tabsInGroup = groupedTabs[group.id] || [];
-            const isCollapsed = group.collapsed;
-            const hasActiveTab = tabsInGroup.some(t => t.active);
-
-            return `
-              <div class="tab-group-container ${isCollapsed ? 'collapsed' : ''}" data-group-id="${group.id}" style="--group-color: ${group.color};">
-                <div class="tab-group-header-pill" data-toggle-collapse="${group.id}" title="${escapeAttr(group.name)} (${tabsInGroup.length} tabs) • Click to ${isCollapsed ? 'expand' : 'collapse'}">
-                  <span class="group-dot" style="background: ${group.color}; box-shadow: 0 0 6px ${group.color};"></span>
-                  <span class="group-name-label">${escapeHtml(group.name)}</span>
-                  <span class="group-count-badge">${tabsInGroup.length}</span>
-                  <span class="group-arrow-icon">${getIcon(isCollapsed ? 'chevron-down' : 'chevron-up', '', 10)}</span>
-                  <button class="group-menu-trigger-btn" data-group-menu="${group.id}" title="Group Options">
-                    ${getIcon('more-vertical', '', 11)}
-                  </button>
-                </div>
-
-                <div class="tab-group-tabs ${isCollapsed && !hasActiveTab ? 'hidden-group-tabs' : ''}">
-                  ${tabsInGroup.map(tab => renderSingleTab(tab, group)).join('')}
-                </div>
-              </div>
-            `;
+          ${visibleTabs.map(tab => {
+            const group = tab.groupId ? store.getTabGroupById(tab.groupId) : null;
+            return renderSingleTab(tab, group, !activeGroup && !!group);
           }).join('')}
 
-          <!-- Render Ungrouped Tabs -->
-          ${ungroupedTabs.map(tab => renderSingleTab(tab, null)).join('')}
-
-          <!-- Action Buttons -->
+          <!-- New Tab Action Button -->
           <div class="tab-strip-actions">
-            <button class="new-group-btn" id="newGroupBtn" title="Create Tab Group">
-              ${getIcon('folder-plus', '', 13)}
-              <span>+ Group</span>
-            </button>
-            <button class="new-tab-btn" id="newTabBtn" title="New Tab (Cmd+T)">
+            <button class="new-tab-btn" id="newTabBtn" title="${activeGroup ? `New Tab in ${activeGroup.name} (Cmd+T)` : 'New Tab (Cmd+T)'}">
               ${getIcon('plus', '', 14)}
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Context Menu Container -->
+      <!-- Tab Context Menu Container -->
       <div id="tabContextMenu" class="tab-context-menu" style="display:none;"></div>
-      
-      <!-- Group Menu Popover -->
-      <div id="groupMenuPopover" class="group-menu-popover" style="display:none;"></div>
     `;
 
     setupEvents();
   }
 
-  function renderSingleTab(tab, group) {
-    const isGrouped = !!group;
-    const accentStyle = isGrouped ? `border-bottom: 2px solid ${group.color};` : '';
+  function renderSingleTab(tab, group, showGroupBadge = false) {
+    const accentStyle = group ? `--tab-group-accent: ${group.color};` : '';
 
     return `
       <div 
-        class="browser-tab ${tab.active ? 'active' : ''} ${tab.pinned ? 'pinned' : ''} ${isGrouped ? 'grouped-tab' : ''}" 
+        class="browser-tab ${tab.active ? 'active' : ''} ${tab.pinned ? 'pinned' : ''} ${group ? 'grouped-tab' : ''}" 
         data-tab-id="${tab.id}" 
+        draggable="true"
         style="${accentStyle}"
-        title="${escapeAttr(tab.title)}"
+        title="${escapeAttr(tab.title)}${group ? ` (${escapeAttr(group.name)})` : ''}"
       >
         <div class="tab-favicon">
           ${getIcon(tab.favicon || 'globe', '', 14)}
         </div>
         <span class="tab-title">${escapeHtml(tab.title)}</span>
+        ${showGroupBadge && group ? `
+          <span 
+            class="tab-group-indicator-badge" 
+            style="--group-tag-bg: ${group.color}22; --group-tag-color: ${group.color}; --group-tag-border: ${group.color}55;"
+            title="Tab Group: ${escapeAttr(group.name)}"
+          >
+            ${escapeHtml(group.name)}
+          </span>
+        ` : ''}
         <button class="tab-close-btn" data-close-tab="${tab.id}" title="Close Tab">
           ${getIcon('close', '', 11)}
         </button>
@@ -134,11 +261,13 @@ export function initTabBar(container) {
   }
 
   function setupEvents() {
-    // Mode Switcher Clicks
+    // Mode Switcher Clicks inside Safari Popover Menu
     container.querySelectorAll('[data-set-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
         const mode = btn.dataset.setMode;
         store.setBrowserMode(mode);
+        isSafariMenuOpen = false;
+        render();
       });
     });
 
@@ -147,35 +276,125 @@ export function initTabBar(container) {
       store.navigateToUrl('brave://newtab');
     });
 
+    // Top Bar Sidebar Toggle
+    container.querySelector('#topBarSidebarToggleBtn')?.addEventListener('click', () => {
+      store.toggleSidebar();
+    });
+
+    // Safari Tab Group Main Button Toggle
+    const safariBtn = container.querySelector('#safariTabGroupBtn');
+    safariBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTabContextMenu();
+      isSafariMenuOpen = !isSafariMenuOpen;
+      render();
+    });
+
+    // Safari Menu - Switch Group / Workspace
+    container.querySelectorAll('[data-switch-group]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.safari-item-actions')) return;
+        const target = item.dataset.switchGroup;
+        store.setActiveTabGroup(target === 'all' ? null : target);
+        isSafariMenuOpen = false;
+        render();
+      });
+    });
+
+    // Safari Menu - Edit Group
+    container.querySelectorAll('[data-edit-group]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const groupId = btn.dataset.editGroup;
+        isSafariMenuOpen = false;
+        render();
+        store.openTabGroupModal(groupId);
+      });
+    });
+
+    // Safari Menu - Delete Group
+    container.querySelectorAll('[data-delete-group]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const groupId = btn.dataset.deleteGroup;
+        store.deleteTabGroup(groupId, false);
+      });
+    });
+
+    // Safari Menu - New Empty Group
+    container.querySelector('#safariNewEmptyGroupBtn')?.addEventListener('click', () => {
+      isSafariMenuOpen = false;
+      render();
+      store.openTabGroupModal(null);
+    });
+
+    // Safari Menu - New Group with Current Tab
+    container.querySelector('#safariNewGroupWithCurrentBtn')?.addEventListener('click', () => {
+      isSafariMenuOpen = false;
+      const activeTab = store.getActiveTab();
+      store.state.pendingTabForGroup = activeTab ? activeTab.id : null;
+      render();
+      store.openTabGroupModal(null);
+    });
+
+    // Safari Menu - New Group with All Open Tabs (Safari Feature)
+    container.querySelector('#safariNewGroupWithAllBtn')?.addEventListener('click', () => {
+      isSafariMenuOpen = false;
+      const tabGroups = store.getTabGroups();
+      const newGroupName = `Group ${tabGroups.length + 1} 📁`;
+      store.createTabGroupFromOpenTabs(newGroupName, '#00F2FE');
+      render();
+    });
+
+    // Safari Menu - Ungroup Current Group
+    container.querySelector('#safariUngroupCurrentGroupBtn')?.addEventListener('click', () => {
+      const activeGroup = store.getActiveTabGroup();
+      if (activeGroup) {
+        store.deleteTabGroup(activeGroup.id, false);
+      }
+      isSafariMenuOpen = false;
+      render();
+    });
+
+    // Safari Menu - Close All Tabs in Group
+    container.querySelector('#safariCloseGroupTabsBtn')?.addEventListener('click', () => {
+      const activeGroup = store.getActiveTabGroup();
+      if (activeGroup) {
+        store.deleteTabGroup(activeGroup.id, true);
+      }
+      isSafariMenuOpen = false;
+      render();
+    });
+
+    // Safari Menu - Move Current Tab to Group
+    container.querySelectorAll('[data-move-current-to]').forEach(item => {
+      item.addEventListener('click', () => {
+        const groupId = item.dataset.moveCurrentTo;
+        const activeTab = store.getActiveTab();
+        if (activeTab) {
+          store.addTabToGroup(activeTab.id, groupId);
+        }
+        isSafariMenuOpen = false;
+        render();
+      });
+    });
+
+    // Safari Menu - Remove Current Tab from Group
+    container.querySelector('#safariRemoveCurrentFromGroup')?.addEventListener('click', () => {
+      const activeTab = store.getActiveTab();
+      if (activeTab) {
+        store.removeTabFromGroup(activeTab.id);
+      }
+      isSafariMenuOpen = false;
+      render();
+    });
+
     // New Tab Button
     container.querySelector('#newTabBtn')?.addEventListener('click', () => {
       store.createTab();
     });
 
-    // New Group Button
-    container.querySelector('#newGroupBtn')?.addEventListener('click', () => {
-      store.openTabGroupModal(null);
-    });
-
-    // Group Collapse Toggle
-    container.querySelectorAll('[data-toggle-collapse]').forEach(header => {
-      header.addEventListener('click', (e) => {
-        if (e.target.closest('[data-group-menu]')) return;
-        const groupId = header.dataset.toggleCollapse;
-        store.toggleGroupCollapse(groupId);
-      });
-    });
-
-    // Group Menu Trigger
-    container.querySelectorAll('[data-group-menu]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const groupId = btn.dataset.groupMenu;
-        openGroupMenu(groupId, btn);
-      });
-    });
-
-    // Tab Clicks & Context Menu
+    // Tab Clicks, Context Menu & Drag-Drop
     container.querySelectorAll('.browser-tab').forEach(tabEl => {
       tabEl.addEventListener('click', (e) => {
         if (e.target.closest('[data-close-tab]')) return;
@@ -194,6 +413,32 @@ export function initTabBar(container) {
         const tabId = tabEl.dataset.tabId;
         openTabContextMenu(tabId, e.clientX, e.clientY);
       });
+
+      // HTML5 Drag and Drop for Tab Reordering & Moving to Groups
+      tabEl.addEventListener('dragstart', (e) => {
+        const tabId = tabEl.dataset.tabId;
+        e.dataTransfer.setData('text/plain', tabId);
+        e.dataTransfer.effectAllowed = 'move';
+        tabEl.style.opacity = '0.5';
+      });
+
+      tabEl.addEventListener('dragend', () => {
+        tabEl.style.opacity = '1';
+      });
+
+      tabEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+
+      tabEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const sourceTabId = e.dataTransfer.getData('text/plain');
+        const targetTabId = tabEl.dataset.tabId;
+        if (sourceTabId && targetTabId && sourceTabId !== targetTabId) {
+          store.reorderTabs(sourceTabId, targetTabId);
+        }
+      });
     });
 
     // Tab Close Buttons
@@ -207,7 +452,9 @@ export function initTabBar(container) {
   }
 
   function openTabContextMenu(tabId, x, y) {
-    closeMenus();
+    closeTabContextMenu();
+    isSafariMenuOpen = false;
+
     const tab = store.getState().tabs.find(t => t.id === tabId);
     if (!tab) return;
 
@@ -226,7 +473,7 @@ export function initTabBar(container) {
       <!-- Add to New Group -->
       <div class="context-menu-item" id="ctxAddToNewGroup">
         ${getIcon('folder-plus', '', 14)}
-        <span>Add Tab to New Group...</span>
+        <span>New Tab Group with This Tab...</span>
       </div>
 
       <!-- Existing Groups Submenu -->
@@ -240,7 +487,7 @@ export function initTabBar(container) {
           <div class="context-submenu">
             ${tabGroups.map(g => `
               <div class="context-menu-item ${g.id === tab.groupId ? 'active-group' : ''}" data-move-to-group="${g.id}">
-                <span class="color-dot" style="background:${g.color};"></span>
+                <span class="group-color-dot" style="background:${g.color};"></span>
                 <span>${escapeHtml(g.name)}</span>
                 ${g.id === tab.groupId ? `<span style="margin-left:auto;">✓</span>` : ''}
               </div>
@@ -251,7 +498,7 @@ export function initTabBar(container) {
 
       ${currentGroup ? `
         <div class="context-menu-item" id="ctxRemoveFromGroup">
-          ${getIcon('x', '', 14)}
+          ${getIcon('close', '', 14)}
           <span>Remove from Group ("${escapeHtml(currentGroup.name)}")</span>
         </div>
       ` : ''}
@@ -298,145 +545,74 @@ export function initTabBar(container) {
 
     // Events in Context Menu
     menu.querySelector('#ctxAddToNewGroup')?.addEventListener('click', () => {
-      closeMenus();
-      store.openTabGroupModal(null);
+      closeTabContextMenu();
       store.state.pendingTabForGroup = tabId;
+      store.openTabGroupModal(null);
     });
 
     menu.querySelectorAll('[data-move-to-group]').forEach(item => {
       item.addEventListener('click', () => {
         const groupId = item.dataset.moveToGroup;
-        store.addTabToGroup(tabId, groupId);
-        closeMenus();
+        store.moveTabToGroup(tabId, groupId);
+        closeTabContextMenu();
+        render();
       });
     });
 
     menu.querySelector('#ctxRemoveFromGroup')?.addEventListener('click', () => {
       store.removeTabFromGroup(tabId);
-      closeMenus();
+      closeTabContextMenu();
+      render();
     });
 
     menu.querySelector('#ctxMoveIncognito')?.addEventListener('click', () => {
       store.moveTabToMode(tabId, 'incognito');
-      closeMenus();
+      closeTabContextMenu();
     });
 
     menu.querySelector('#ctxMoveSuperPvt')?.addEventListener('click', () => {
       store.moveTabToMode(tabId, 'super-pvt');
-      closeMenus();
+      closeTabContextMenu();
     });
 
     menu.querySelector('#ctxDuplicate')?.addEventListener('click', () => {
       store.duplicateTab(tabId);
-      closeMenus();
+      closeTabContextMenu();
     });
 
     menu.querySelector('#ctxPin')?.addEventListener('click', () => {
       store.togglePinTab(tabId);
-      closeMenus();
+      closeTabContextMenu();
     });
 
     menu.querySelector('#ctxClose')?.addEventListener('click', () => {
       store.closeTab(tabId);
-      closeMenus();
+      closeTabContextMenu();
     });
   }
 
-  function openGroupMenu(groupId, anchorEl) {
-    closeMenus();
-    const group = store.getTabGroupById(groupId);
-    if (!group) return;
-
-    const popover = container.querySelector('#groupMenuPopover');
-    if (!popover) return;
-
-    const rect = anchorEl.getBoundingClientRect();
-
-    popover.innerHTML = `
-      <div class="group-popover-header" style="border-left: 3px solid ${group.color};">
-        <span class="group-popover-title">${escapeHtml(group.name)}</span>
-        <button class="popover-close-btn" id="popoverCloseBtn">${getIcon('close', '', 12)}</button>
-      </div>
-
-      <div class="group-popover-actions">
-        <div class="group-popover-item" id="grpEditBtn">
-          ${getIcon('edit', '', 14)}
-          <span>Edit Group Name & Color...</span>
-        </div>
-
-        <div class="group-popover-item" id="grpNewTabBtn">
-          ${getIcon('plus', '', 14)}
-          <span>New Tab in this Group</span>
-        </div>
-
-        <div class="group-popover-item" id="grpToggleCollapseBtn">
-          ${getIcon(group.collapsed ? 'chevron-down' : 'chevron-up', '', 14)}
-          <span>${group.collapsed ? 'Expand Group' : 'Collapse Group'}</span>
-        </div>
-
-        <div class="group-popover-divider"></div>
-
-        <div class="group-popover-item" id="grpUngroupBtn">
-          ${getIcon('layers', '', 14)}
-          <span>Ungroup All Tabs</span>
-        </div>
-
-        <div class="group-popover-item danger" id="grpCloseTabsBtn">
-          ${getIcon('trash-2', '', 14)}
-          <span>Close All Tabs in Group</span>
-        </div>
-      </div>
-    `;
-
-    popover.style.left = `${Math.min(rect.left, window.innerWidth - 220)}px`;
-    popover.style.top = `${rect.bottom + 6}px`;
-    popover.style.display = 'block';
-    activeContextMenu = popover;
-
-    // Popover Events
-    popover.querySelector('#popoverCloseBtn')?.addEventListener('click', () => closeMenus());
-
-    popover.querySelector('#grpEditBtn')?.addEventListener('click', () => {
-      closeMenus();
-      store.openTabGroupModal(groupId);
-    });
-
-    popover.querySelector('#grpNewTabBtn')?.addEventListener('click', () => {
-      closeMenus();
-      store.createTab('brave://newtab', 'New Tab', groupId);
-    });
-
-    popover.querySelector('#grpToggleCollapseBtn')?.addEventListener('click', () => {
-      closeMenus();
-      store.toggleGroupCollapse(groupId);
-    });
-
-    popover.querySelector('#grpUngroupBtn')?.addEventListener('click', () => {
-      closeMenus();
-      store.deleteTabGroup(groupId, false);
-    });
-
-    popover.querySelector('#grpCloseTabsBtn')?.addEventListener('click', () => {
-      closeMenus();
-      store.deleteTabGroup(groupId, true);
-    });
-  }
-
-  function closeMenus() {
+  function closeTabContextMenu() {
     if (activeContextMenu) {
       activeContextMenu.style.display = 'none';
       activeContextMenu = null;
     }
   }
 
-  // Global listener to close context menus when clicking outside
+  // Global click outside handler
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.tab-context-menu') && !e.target.closest('.group-menu-popover') && !e.target.closest('.group-menu-trigger-btn')) {
-      closeMenus();
+    if (isSafariMenuOpen && !e.target.closest('.safari-group-wrapper')) {
+      isSafariMenuOpen = false;
+      const menu = container.querySelector('#safariGroupMenu');
+      const btn = container.querySelector('#safariTabGroupBtn');
+      if (menu) menu.style.display = 'none';
+      if (btn) btn.classList.remove('open');
+    }
+    if (activeContextMenu && !e.target.closest('.tab-context-menu')) {
+      closeTabContextMenu();
     }
   });
 
-  // Subscribe to changes
+  // Subscribe to store events
   store.subscribe((state, event) => {
     if ([
       'TAB_CREATED',
@@ -445,8 +621,12 @@ export function initTabBar(container) {
       'TAB_PINNED',
       'BROWSER_MODE_CHANGED',
       'TAB_GROUPS_UPDATED',
+      'TAB_MOVED_GROUP',
+      'TABS_REORDERED',
       'NAVIGATION_COMPLETE',
-      'SESSION_NUKED'
+      'SESSION_NUKED',
+      'SIDEBAR_TOGGLED',
+      'NOTES_SIDEBAR_TOGGLED'
     ].includes(event)) {
       render();
     }

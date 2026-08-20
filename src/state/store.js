@@ -5,9 +5,11 @@ import {
   DEFAULT_NOTES,
   DEFAULT_FILTER_LISTS,
   DEFAULT_SEARCH_ENGINES,
+  DEFAULT_MOTRIX_TASKS,
   MOCK_WEB_PAGES,
   SEARCH_RESULTS_MOCK
 } from './defaultData.js';
+import { motrixService } from '../services/motrixService.js';
 
 class Store {
   constructor() {
@@ -19,10 +21,92 @@ class Store {
     const savedNotes = this.loadFromStorage('webbuddy_saved_notes', DEFAULT_NOTES);
     const savedFilterLists = this.loadFromStorage('webbuddy_filter_lists', DEFAULT_FILTER_LISTS);
     const savedSearchEngines = this.loadFromStorage('webbuddy_search_engines', DEFAULT_SEARCH_ENGINES);
+    const savedMotrixTasks = this.loadFromStorage('webbuddy_motrix_tasks', DEFAULT_MOTRIX_TASKS);
+    const savedMotrixConfig = this.loadFromStorage('webbuddy_motrix_config', {
+      rpcHost: '127.0.0.1',
+      rpcPort: 16800,
+      rpcSecret: '',
+      autoInterceptDownloads: true,
+      maxConnections: 16,
+      downloadDir: '~/Downloads'
+    });
     const savedTabGroups = this.loadFromStorage('webbuddy_tab_groups', [
       { id: 'group-work', name: 'Work 💼', color: '#00F2FE', collapsed: false, mode: 'standard' },
       { id: 'group-privacy', name: 'Privacy & Tech 🛡️', color: '#7F00FF', collapsed: false, mode: 'standard' }
     ]);
+    const defaultTabs = [
+      {
+        id: 'tab-work-1',
+        title: 'GitHub: Developer Dashboard',
+        url: 'https://github.com',
+        type: 'web',
+        favicon: 'github',
+        pinned: false,
+        active: false,
+        mode: 'standard',
+        groupId: 'group-work',
+        adsBlockedCount: 4,
+        trackersBlockedCount: 9,
+        totalBlockedCount: 13,
+        history: ['https://github.com'],
+        historyIndex: 0,
+        isLoading: false
+      },
+      {
+        id: 'tab-work-2',
+        title: 'Vite — Next Generation Frontend Tooling',
+        url: 'https://vitejs.dev',
+        type: 'web',
+        favicon: 'globe',
+        pinned: false,
+        active: false,
+        mode: 'standard',
+        groupId: 'group-work',
+        adsBlockedCount: 2,
+        trackersBlockedCount: 6,
+        totalBlockedCount: 8,
+        history: ['https://vitejs.dev'],
+        historyIndex: 0,
+        isLoading: false
+      },
+      {
+        id: 'tab-priv-1',
+        title: 'Brave Privacy & Ad-Block Tech',
+        url: 'https://brave.com',
+        type: 'web',
+        favicon: 'shield',
+        pinned: false,
+        active: false,
+        mode: 'standard',
+        groupId: 'group-privacy',
+        adsBlockedCount: 8,
+        trackersBlockedCount: 15,
+        totalBlockedCount: 23,
+        history: ['https://brave.com'],
+        historyIndex: 0,
+        isLoading: false
+      },
+      {
+        id: 'tab-main-1',
+        title: 'New Tab',
+        url: 'brave://newtab',
+        type: 'ntp',
+        favicon: 'shield',
+        pinned: false,
+        active: true,
+        mode: 'standard',
+        groupId: null,
+        adsBlockedCount: 0,
+        trackersBlockedCount: 0,
+        totalBlockedCount: 0,
+        history: ['brave://newtab'],
+        historyIndex: 0,
+        isLoading: false
+      }
+    ];
+    const rawSavedTabs = this.loadFromStorage('webbuddy_tabs', null);
+    const savedTabs = (rawSavedTabs && Array.isArray(rawSavedTabs) && rawSavedTabs.length > 0) ? rawSavedTabs : defaultTabs;
+
     const savedSettings = this.loadFromStorage('webbuddy_settings', {
       showShieldsStats: true,
       showTopSites: true,
@@ -32,6 +116,8 @@ class Store {
       blurWallpaper: false,
       bookmarksBarVisible: true,
       notesSidebarOpen: false,
+      sidebarOpen: false,
+      sidebarMode: 'groups', // 'groups' | 'notes'
       defaultSearchEngine: 'google'
     });
 
@@ -41,6 +127,12 @@ class Store {
 
       // Tab Groups
       tabGroups: savedTabGroups,
+      activeTabGroupId: null, // null = All Open Tabs, or a specific group id
+
+      // Sidebar System: Groups & Notes
+      sidebarMode: savedSettings.sidebarMode || 'groups', // 'groups' | 'notes'
+      isSidebarOpen: savedSettings.sidebarOpen || savedSettings.notesSidebarOpen || false,
+      isNotesSidebarOpen: savedSettings.notesSidebarOpen || false,
 
       // Super Private (Tor / Onion Routing Circuit)
       superPvt: {
@@ -65,27 +157,9 @@ class Store {
       // Search Engines
       searchEngines: savedSearchEngines,
       defaultSearchEngine: savedSettings.defaultSearchEngine || 'google',
-      // Browser Tabs
-      tabs: [
-        {
-          id: 'tab-1',
-          title: 'New Tab',
-          url: 'brave://newtab',
-          type: 'ntp',
-          favicon: 'shield',
-          pinned: false,
-          active: true,
-          mode: 'standard',
-          groupId: null,
-          adsBlockedCount: 0,
-          trackersBlockedCount: 0,
-          totalBlockedCount: 0,
-          history: ['brave://newtab'],
-          historyIndex: 0,
-          isLoading: false
-        }
-      ],
-      activeTabId: 'tab-1',
+      // Browser Tabs (Persistently Loaded)
+      tabs: savedTabs,
+      activeTabId: (savedTabs.find(t => t.active) || savedTabs[0])?.id || 'tab-main-1',
 
       // Wallpapers
       wallpapers: DEFAULT_WALLPAPERS,
@@ -93,7 +167,6 @@ class Store {
 
       // Notes & Notepad Sidebar
       notes: savedNotes,
-      isNotesSidebarOpen: savedSettings.notesSidebarOpen || false,
       activeNoteId: savedNotes.length > 0 ? savedNotes[0].id : null,
 
       // Core Ad & Tracker Blocker Engine
@@ -136,12 +209,45 @@ class Store {
       },
 
       // UI Active Popups / Modals
-      activeModal: null, // 'shields' | 'settings' | 'addShortcut' | 'videoControls' | 'circuit' | 'tabGroup'
+      activeModal: null, // 'shields' | 'settings' | 'addShortcut' | 'videoControls' | 'circuit' | 'tabGroup' | 'motrix'
       activeGroupEditing: null,
+
+      // Motrix Download Manager State
+      motrix: {
+        isConnected: false,
+        rpcHost: savedMotrixConfig.rpcHost || '127.0.0.1',
+        rpcPort: savedMotrixConfig.rpcPort || 16800,
+        rpcSecret: savedMotrixConfig.rpcSecret || '',
+        autoInterceptDownloads: savedMotrixConfig.autoInterceptDownloads ?? true,
+        maxConnections: savedMotrixConfig.maxConnections || 16,
+        downloadDir: savedMotrixConfig.downloadDir || '~/Downloads',
+        globalDownloadSpeed: 0,
+        globalUploadSpeed: 0,
+        filterTab: 'all', // 'all' | 'downloading' | 'completed' | 'paused'
+        isAddDialogOpen: false,
+        tasks: savedMotrixTasks
+      },
 
       // Settings
       settings: savedSettings
     };
+
+    // Configure and listen to Motrix Service
+    motrixService.configure({
+      host: this.state.motrix.rpcHost,
+      port: this.state.motrix.rpcPort,
+      secret: this.state.motrix.rpcSecret
+    });
+
+    motrixService.subscribe((data) => {
+      if (data.type === 'status') {
+        this.state.motrix.isConnected = data.isConnected;
+        this.notify('MOTRIX_STATUS_CHANGED', data.isConnected);
+      }
+    });
+
+    // Start background download speed & progress processor
+    this.startDownloadEngine();
   }
 
   loadFromStorage(key, fallback) {
@@ -180,9 +286,18 @@ class Store {
     return this.state.browserMode || 'standard';
   }
 
-  getVisibleTabs() {
+  getAllModeTabs() {
     const currentMode = this.state.browserMode || 'standard';
     return this.state.tabs.filter(t => (t.mode || 'standard') === currentMode);
+  }
+
+  getVisibleTabs() {
+    const currentMode = this.state.browserMode || 'standard';
+    const modeTabs = this.state.tabs.filter(t => (t.mode || 'standard') === currentMode);
+    if (this.state.activeTabGroupId) {
+      return modeTabs.filter(t => t.groupId === this.state.activeTabGroupId);
+    }
+    return modeTabs;
   }
 
   getActiveTab() {
@@ -199,6 +314,39 @@ class Store {
     return this.state.tabGroups.find(g => g.id === groupId);
   }
 
+  getActiveTabGroup() {
+    if (!this.state.activeTabGroupId) return null;
+    return this.state.tabGroups.find(g => g.id === this.state.activeTabGroupId) || null;
+  }
+
+  setActiveTabGroup(groupId) {
+    if (groupId && !this.state.tabGroups.some(g => g.id === groupId)) {
+      this.state.activeTabGroupId = null;
+    } else {
+      this.state.activeTabGroupId = groupId || null;
+    }
+
+    const currentMode = this.state.browserMode || 'standard';
+    const modeTabs = this.state.tabs.filter(t => (t.mode || 'standard') === currentMode);
+    if (this.state.activeTabGroupId) {
+      const filtered = modeTabs.filter(t => t.groupId === this.state.activeTabGroupId);
+      if (filtered.length === 0) {
+        this.createTab('brave://newtab', 'New Tab', this.state.activeTabGroupId);
+      } else {
+        if (!filtered.some(t => t.id === this.state.activeTabId)) {
+          this.switchTab(filtered[0].id);
+        }
+      }
+    } else {
+      if (modeTabs.length > 0 && !modeTabs.some(t => t.id === this.state.activeTabId)) {
+        this.switchTab(modeTabs[0].id);
+      }
+    }
+
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+    this.notify('TAB_SWITCHED', this.getActiveTab());
+  }
+
   getActiveWallpaper() {
     return this.state.wallpapers[this.state.activeWallpaperIndex % this.state.wallpapers.length];
   }
@@ -213,6 +361,7 @@ class Store {
   setBrowserMode(mode) {
     if (!['standard', 'incognito', 'super-pvt'].includes(mode)) return;
     this.state.browserMode = mode;
+    this.state.activeTabGroupId = null; // Reset group filter on mode change
 
     // Check if there is already a tab in this mode
     const modeTabs = this.state.tabs.filter(t => (t.mode || 'standard') === mode);
@@ -259,6 +408,7 @@ class Store {
     const mode = this.state.browserMode || 'standard';
     const isSuper = mode === 'super-pvt';
     const isIncognito = mode === 'incognito';
+    const actualGroupId = groupId !== null ? groupId : (this.state.activeTabGroupId || null);
 
     const adsNow = isNtp ? (isSuper ? 6 : isIncognito ? 3 : 0) : Math.floor(Math.random() * 8) + 3;
     const trackersNow = isNtp ? (isSuper ? 14 : isIncognito ? 8 : 0) : Math.floor(Math.random() * 12) + 6;
@@ -282,7 +432,7 @@ class Store {
       pinned: false,
       active: true,
       mode: mode,
-      groupId: groupId,
+      groupId: actualGroupId,
       adsBlockedCount: adsNow,
       trackersBlockedCount: trackersNow,
       totalBlockedCount: adsNow + trackersNow,
@@ -305,7 +455,13 @@ class Store {
       this.incrementShieldStats(adsNow, trackersNow);
     }
 
+    this.saveTabs();
     this.notify('TAB_CREATED', newTab);
+  }
+
+  saveTabs() {
+    const standardTabs = this.state.tabs.filter(t => (t.mode || 'standard') === 'standard');
+    this.saveToStorage('webbuddy_tabs', standardTabs);
   }
 
   switchTab(tabId) {
@@ -319,6 +475,7 @@ class Store {
 
     this.state.tabs.forEach(t => t.active = (t.id === tabId));
     this.state.activeTabId = tabId;
+    this.saveTabs();
     this.notify('TAB_SWITCHED', tab);
   }
 
@@ -348,6 +505,7 @@ class Store {
       }
     }
 
+    this.saveTabs();
     this.notify('TAB_CLOSED', { tabId, activeTabId: this.state.activeTabId });
   }
 
@@ -356,6 +514,7 @@ class Store {
     if (tab) {
       tab.pinned = !tab.pinned;
       this.state.tabs.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+      this.saveTabs();
       this.notify('TAB_PINNED', tab);
     }
   }
@@ -394,7 +553,60 @@ class Store {
       if (tab) tab.groupId = newGroupId;
     }
 
+    this.saveTabs();
     this.saveToStorage('webbuddy_tab_groups', this.state.tabGroups);
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+    return newGroup;
+  }
+
+  createEmptyTabGroup(name = 'New Group', color = '#00F2FE') {
+    const mode = this.state.browserMode || 'standard';
+    const newGroupId = 'group-' + Date.now();
+    const newGroup = {
+      id: newGroupId,
+      name: name.trim() || 'New Group',
+      color: color || '#00F2FE',
+      collapsed: false,
+      mode: mode
+    };
+
+    this.state.tabGroups.push(newGroup);
+    this.saveToStorage('webbuddy_tab_groups', this.state.tabGroups);
+
+    // Create an initial tab in this group and switch to it
+    this.state.activeTabGroupId = newGroupId;
+    this.createTab('brave://newtab', 'New Tab', newGroupId);
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+    return newGroup;
+  }
+
+  createTabGroupFromCurrentTab(name = 'New Group', color = '#00F2FE') {
+    const activeTab = this.getActiveTab();
+    const group = this.createTabGroup(name, color, activeTab ? activeTab.id : null);
+    this.setActiveTabGroup(group.id);
+    return group;
+  }
+
+  createTabGroupFromOpenTabs(name = 'New Group', color = '#00F2FE') {
+    const currentMode = this.state.browserMode || 'standard';
+    const modeTabs = this.state.tabs.filter(t => (t.mode || 'standard') === currentMode);
+    const newGroupId = 'group-' + Date.now();
+    const newGroup = {
+      id: newGroupId,
+      name: name.trim() || 'New Group',
+      color: color || '#00F2FE',
+      collapsed: false,
+      mode: currentMode
+    };
+
+    this.state.tabGroups.push(newGroup);
+    modeTabs.forEach(t => {
+      t.groupId = newGroupId;
+    });
+
+    this.saveTabs();
+    this.saveToStorage('webbuddy_tab_groups', this.state.tabGroups);
+    this.setActiveTabGroup(newGroupId);
     this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
     return newGroup;
   }
@@ -411,6 +623,14 @@ class Store {
     this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
   }
 
+  renameTabGroup(groupId, newName) {
+    this.updateTabGroup(groupId, { name: newName });
+  }
+
+  setTabGroupColor(groupId, color) {
+    this.updateTabGroup(groupId, { color: color });
+  }
+
   toggleGroupCollapse(groupId) {
     const group = this.state.tabGroups.find(g => g.id === groupId);
     if (!group) return;
@@ -424,6 +644,10 @@ class Store {
     if (index === -1) return;
 
     this.state.tabGroups.splice(index, 1);
+
+    if (this.state.activeTabGroupId === groupId) {
+      this.state.activeTabGroupId = null;
+    }
 
     if (closeTabs) {
       this.state.tabs = this.state.tabs.filter(t => t.groupId !== groupId);
@@ -439,6 +663,7 @@ class Store {
       });
     }
 
+    this.saveTabs();
     this.saveToStorage('webbuddy_tab_groups', this.state.tabGroups);
     this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
     this.notify('TAB_CLOSED', {});
@@ -448,6 +673,7 @@ class Store {
     const tab = this.state.tabs.find(t => t.id === tabId);
     if (!tab) return;
     tab.groupId = groupId;
+    this.saveTabs();
     this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
   }
 
@@ -455,7 +681,29 @@ class Store {
     const tab = this.state.tabs.find(t => t.id === tabId);
     if (!tab) return;
     tab.groupId = null;
+    this.saveTabs();
     this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+  }
+
+  moveTabToGroup(tabId, targetGroupId) {
+    const tab = this.state.tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    tab.groupId = targetGroupId || null;
+    this.saveTabs();
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+    this.notify('TAB_MOVED_GROUP', { tabId, targetGroupId });
+  }
+
+  reorderTabs(sourceTabId, targetTabId) {
+    const sourceIndex = this.state.tabs.findIndex(t => t.id === sourceTabId);
+    const targetIndex = this.state.tabs.findIndex(t => t.id === targetTabId);
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+
+    const [movedTab] = this.state.tabs.splice(sourceIndex, 1);
+    this.state.tabs.splice(targetIndex, 0, movedTab);
+
+    this.saveTabs();
+    this.notify('TABS_REORDERED', this.state.tabs);
   }
 
   // --- Super Private / Tor Circuit Management ---
@@ -842,12 +1090,55 @@ class Store {
     this.notify('BOOKMARKS_UPDATED', this.state.bookmarks);
   }
 
-  // Notes Sidebar & Capacity Management
-  toggleNotesSidebar(open) {
-    this.state.isNotesSidebarOpen = (open !== undefined) ? open : !this.state.isNotesSidebarOpen;
+  // Unified Sidebar Management (Tab Groups & Notes)
+  toggleSidebar(open, mode) {
+    if (mode) {
+      this.state.sidebarMode = mode;
+      this.state.settings.sidebarMode = mode;
+    }
+    this.state.isSidebarOpen = (open !== undefined) ? open : !this.state.isSidebarOpen;
+    this.state.isNotesSidebarOpen = this.state.isSidebarOpen && this.state.sidebarMode === 'notes';
+    this.state.settings.sidebarOpen = this.state.isSidebarOpen;
     this.state.settings.notesSidebarOpen = this.state.isNotesSidebarOpen;
+
     this.saveToStorage('webbuddy_settings', this.state.settings);
+    this.notify('SIDEBAR_TOGGLED', { isOpen: this.state.isSidebarOpen, mode: this.state.sidebarMode });
     this.notify('NOTES_SIDEBAR_TOGGLED', this.state.isNotesSidebarOpen);
+  }
+
+  setSidebarMode(mode) {
+    this.state.sidebarMode = mode;
+    this.state.settings.sidebarMode = mode;
+    if (!this.state.isSidebarOpen) {
+      this.state.isSidebarOpen = true;
+      this.state.settings.sidebarOpen = true;
+    }
+    this.state.isNotesSidebarOpen = (mode === 'notes');
+    this.state.settings.notesSidebarOpen = this.state.isNotesSidebarOpen;
+
+    this.saveToStorage('webbuddy_settings', this.state.settings);
+    this.notify('SIDEBAR_TOGGLED', { isOpen: this.state.isSidebarOpen, mode: this.state.sidebarMode });
+    this.notify('NOTES_SIDEBAR_TOGGLED', this.state.isNotesSidebarOpen);
+  }
+
+  toggleNotesSidebar(open) {
+    if (open === false) {
+      this.toggleSidebar(false);
+    } else if (this.state.isSidebarOpen && this.state.sidebarMode === 'notes' && open === undefined) {
+      this.toggleSidebar(false);
+    } else {
+      this.toggleSidebar(true, 'notes');
+    }
+  }
+
+  toggleTabGroupsSidebar(open) {
+    if (open === false) {
+      this.toggleSidebar(false);
+    } else if (this.state.isSidebarOpen && this.state.sidebarMode === 'groups' && open === undefined) {
+      this.toggleSidebar(false);
+    } else {
+      this.toggleSidebar(true, 'groups');
+    }
   }
 
   selectNote(noteId) {
@@ -1011,6 +1302,202 @@ class Store {
     this.state.settings[key] = val;
     this.saveToStorage('webbuddy_settings', this.state.settings);
     this.notify('SETTINGS_UPDATED', { key, val, settings: this.state.settings });
+  }
+
+  // ==========================================
+  // MOTRIX DOWNLOAD MANAGER METHODS
+  // ==========================================
+
+  startDownloadEngine() {
+    setInterval(() => {
+      let activeCount = 0;
+      let totalDownSpeed = 0;
+      let totalUpSpeed = 0;
+      let stateChanged = false;
+
+      this.state.motrix.tasks.forEach(task => {
+        if (task.status === 'active') {
+          activeCount++;
+          // Fluctuate speed naturally around baseline
+          const variance = 0.85 + Math.random() * 0.3;
+          const currentSpeed = Math.round((task.downloadSpeed || 15000000) * variance);
+          task.currentSpeed = currentSpeed;
+          totalDownSpeed += currentSpeed;
+
+          if (task.type === 'torrent') {
+            const upSpeed = Math.round((task.uploadSpeed || 2000000) * variance);
+            totalUpSpeed += upSpeed;
+          }
+
+          // Advance completed length
+          const delta = currentSpeed;
+          task.completedLength = Math.min(task.totalLength, (task.completedLength || 0) + delta);
+          task.progress = Math.min(100, parseFloat(((task.completedLength / task.totalLength) * 100).toFixed(1)));
+          
+          const remainingBytes = task.totalLength - task.completedLength;
+          task.eta = currentSpeed > 0 ? Math.max(0, Math.ceil(remainingBytes / currentSpeed)) : 0;
+
+          if (task.completedLength >= task.totalLength) {
+            task.status = 'complete';
+            task.progress = 100;
+            task.currentSpeed = 0;
+            task.eta = 0;
+            stateChanged = true;
+          }
+        } else {
+          task.currentSpeed = 0;
+        }
+      });
+
+      this.state.motrix.globalDownloadSpeed = totalDownSpeed;
+      this.state.motrix.globalUploadSpeed = totalUpSpeed;
+
+      this.notify('MOTRIX_SPEED_TICK', {
+        downloadSpeed: totalDownSpeed,
+        uploadSpeed: totalUpSpeed,
+        activeCount
+      });
+
+      if (stateChanged) {
+        this.saveToStorage('webbuddy_motrix_tasks', this.state.motrix.tasks);
+        this.notify('MOTRIX_TASKS_UPDATED', this.state.motrix.tasks);
+      }
+    }, 1000);
+  }
+
+  openMotrixModal() {
+    this.state.activeModal = this.state.activeModal === 'motrix' ? null : 'motrix';
+    this.notify('MODAL_CHANGED', this.state.activeModal);
+  }
+
+  setMotrixFilterTab(tab) {
+    this.state.motrix.filterTab = tab;
+    this.notify('MOTRIX_FILTER_CHANGED', tab);
+  }
+
+  setMotrixAddDialogOpen(isOpen) {
+    this.state.motrix.isAddDialogOpen = isOpen;
+    this.notify('MOTRIX_DIALOG_CHANGED', isOpen);
+  }
+
+  async addMotrixTask(taskOptions) {
+    const { url, filename, connections = 16, dir = '', referer = '' } = taskOptions;
+    if (!url) return;
+
+    const isMagnet = url.startsWith('magnet:');
+    const isTorrent = url.endsWith('.torrent') || isMagnet;
+    const parsedName = filename || (isMagnet ? 'Magnet Stream - ' + Date.now() : url.split('/').pop().split('?')[0]) || 'download-file.bin';
+    
+    // Estimate size for simulation
+    const estimatedSize = isMagnet ? 2400000000 : (Math.floor(Math.random() * 800) + 100) * 1024 * 1024;
+
+    const newTask = {
+      gid: `m-task-${Date.now()}`,
+      filename: parsedName,
+      url: url,
+      type: isMagnet ? 'magnet' : isTorrent ? 'torrent' : 'direct',
+      status: 'active',
+      totalLength: estimatedSize,
+      completedLength: 0,
+      downloadSpeed: (12 + Math.floor(Math.random() * 15)) * 1024 * 1024,
+      uploadSpeed: isTorrent ? (2 + Math.floor(Math.random() * 3)) * 1024 * 1024 : 0,
+      seeders: isTorrent ? 48 + Math.floor(Math.random() * 60) : null,
+      peers: isTorrent ? 90 + Math.floor(Math.random() * 100) : null,
+      connections: connections || this.state.motrix.maxConnections || 16,
+      eta: 60,
+      progress: 0,
+      addedAt: Date.now()
+    };
+
+    // Forward to RPC if connected
+    motrixService.addDownload({
+      url,
+      filename: parsedName,
+      connections: newTask.connections,
+      dir,
+      referer
+    }).catch(e => console.log('RPC dispatch note:', e.message));
+
+    this.state.motrix.tasks.unshift(newTask);
+    this.state.motrix.isAddDialogOpen = false;
+    this.saveToStorage('webbuddy_motrix_tasks', this.state.motrix.tasks);
+    this.notify('MOTRIX_TASKS_UPDATED', this.state.motrix.tasks);
+  }
+
+  pauseMotrixTask(gid) {
+    const task = this.state.motrix.tasks.find(t => t.gid === gid);
+    if (task && task.status === 'active') {
+      task.status = 'paused';
+      task.currentSpeed = 0;
+      motrixService.pauseDownload(gid).catch(() => {});
+      this.saveToStorage('webbuddy_motrix_tasks', this.state.motrix.tasks);
+      this.notify('MOTRIX_TASKS_UPDATED', this.state.motrix.tasks);
+    }
+  }
+
+  resumeMotrixTask(gid) {
+    const task = this.state.motrix.tasks.find(t => t.gid === gid);
+    if (task && task.status === 'paused') {
+      task.status = 'active';
+      motrixService.resumeDownload(gid).catch(() => {});
+      this.saveToStorage('webbuddy_motrix_tasks', this.state.motrix.tasks);
+      this.notify('MOTRIX_TASKS_UPDATED', this.state.motrix.tasks);
+    }
+  }
+
+  removeMotrixTask(gid) {
+    this.state.motrix.tasks = this.state.motrix.tasks.filter(t => t.gid !== gid);
+    motrixService.removeDownload(gid).catch(() => {});
+    this.saveToStorage('webbuddy_motrix_tasks', this.state.motrix.tasks);
+    this.notify('MOTRIX_TASKS_UPDATED', this.state.motrix.tasks);
+  }
+
+  clearCompletedMotrixTasks() {
+    this.state.motrix.tasks = this.state.motrix.tasks.filter(t => t.status !== 'complete');
+    this.saveToStorage('webbuddy_motrix_tasks', this.state.motrix.tasks);
+    this.notify('MOTRIX_TASKS_UPDATED', this.state.motrix.tasks);
+  }
+
+  pauseAllMotrixTasks() {
+    this.state.motrix.tasks.forEach(t => {
+      if (t.status === 'active') t.status = 'paused';
+    });
+    this.saveToStorage('webbuddy_motrix_tasks', this.state.motrix.tasks);
+    this.notify('MOTRIX_TASKS_UPDATED', this.state.motrix.tasks);
+  }
+
+  resumeAllMotrixTasks() {
+    this.state.motrix.tasks.forEach(t => {
+      if (t.status === 'paused') t.status = 'active';
+    });
+    this.saveToStorage('webbuddy_motrix_tasks', this.state.motrix.tasks);
+    this.notify('MOTRIX_TASKS_UPDATED', this.state.motrix.tasks);
+  }
+
+  updateMotrixConfig(newConfig) {
+    this.state.motrix = { ...this.state.motrix, ...newConfig };
+    this.saveToStorage('webbuddy_motrix_config', {
+      rpcHost: this.state.motrix.rpcHost,
+      rpcPort: this.state.motrix.rpcPort,
+      rpcSecret: this.state.motrix.rpcSecret,
+      autoInterceptDownloads: this.state.motrix.autoInterceptDownloads,
+      maxConnections: this.state.motrix.maxConnections,
+      downloadDir: this.state.motrix.downloadDir
+    });
+    motrixService.configure({
+      host: this.state.motrix.rpcHost,
+      port: this.state.motrix.rpcPort,
+      secret: this.state.motrix.rpcSecret
+    });
+    this.notify('MOTRIX_CONFIG_UPDATED', this.state.motrix);
+  }
+
+  launchMotrixApp() {
+    try {
+      window.location.href = 'motrix://';
+    } catch (e) {
+      console.log('Motrix scheme invocation:', e);
+    }
   }
 }
 

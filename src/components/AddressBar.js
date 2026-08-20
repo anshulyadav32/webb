@@ -14,6 +14,10 @@ export function initAddressBar(container) {
     const currentMode = store.getBrowserMode();
     const isIncognito = currentMode === 'incognito';
     const isSuperPvt = currentMode === 'super-pvt';
+    const downloadingCount = (state.motrix?.tasks || []).filter(t => t.status === 'active').length;
+    const globalSpeedMB = (state.motrix?.globalDownloadSpeed || 0) / (1024 * 1024);
+    const speedFormatted = globalSpeedMB >= 1 ? `${globalSpeedMB.toFixed(1)} MB/s` : `${Math.round((state.motrix?.globalDownloadSpeed || 0) / 1024)} KB/s`;
+
     const placeholderText = isSuperPvt 
       ? `Search anonymously through ${state.superPvt?.exitCountry || 'Onion Circuit'}...`
       : isIncognito 
@@ -23,9 +27,6 @@ export function initAddressBar(container) {
     container.innerHTML = `
       <div class="browser-navbar ${currentMode !== 'standard' ? 'navbar-' + currentMode : ''}">
         <div class="nav-buttons">
-          <button class="nav-btn" id="notesSidebarToggleBtn" title="Toggle Notes Sidebar (Cmd+N)">
-            ${getIcon('file-text', '', 15)}
-          </button>
           <button class="nav-btn" id="navBackBtn" title="Click to go back" ${activeTab.historyIndex <= 0 ? 'disabled' : ''}>
             ${getIcon('arrow-left', '', 16)}
           </button>
@@ -97,7 +98,7 @@ export function initAddressBar(container) {
           <div class="omnibox-dropdown" id="omniboxDropdown" style="display: none;"></div>
         </div>
 
-        <!-- Action Buttons: Ad Blocker + Video PiP Overlay + Panic Button -->
+        <!-- Action Buttons: Motrix + Ad Blocker + Video PiP Overlay + Settings -->
         <div class="browser-actions">
           ${(isIncognito || isSuperPvt) ? `
             <button class="action-pill-btn panic-btn" id="panicNukeBtn" title="🚨 EMERGENCY PANIC: Destroy all private tabs & wipe volatile RAM instantly">
@@ -105,6 +106,12 @@ export function initAddressBar(container) {
               <span>Nuke Session</span>
             </button>
           ` : ''}
+
+          <!-- Motrix Download Manager Button -->
+          <button class="action-pill-btn" id="motrixDownloadBtn" style="border-color:${downloadingCount > 0 ? 'rgba(255,64,129,0.5)' : 'rgba(255,255,255,0.1)'}; color:${downloadingCount > 0 ? '#FF4081' : '#E2E8F0'}; gap:6px; background:${downloadingCount > 0 ? 'rgba(255,64,129,0.12)' : 'rgba(255,255,255,0.03)'};" title="Motrix Download Manager (Cmd+J)">
+            ${getIcon('motrix-logo', '', 14)}
+            <span>${downloadingCount > 0 ? `${speedFormatted} (${downloadingCount})` : 'Motrix'}</span>
+          </button>
 
           <button class="action-pill-btn" id="adblockControlBtn" style="border-color:rgba(0,242,254,0.3); color:#00F2FE;" title="Adblocker & Filter Lists">
             ${getIcon('shield-check', '', 14)}
@@ -116,7 +123,7 @@ export function initAddressBar(container) {
             <span>${state.media?.isPipActive ? 'PiP Active' : 'Auto PiP Overlay'}</span>
           </button>
 
-          <button class="action-icon-btn" id="settingsMenuBtn" title="Settings & Search Engines">
+          <button class="action-icon-btn" id="settingsMenuBtn" title="Settings & Preferences">
             ${getIcon('settings', '', 16)}
           </button>
         </div>
@@ -132,7 +139,7 @@ export function initAddressBar(container) {
 
     // Navigation Controls
     container.querySelector('#notesSidebarToggleBtn')?.addEventListener('click', () => {
-      store.toggleNotesSidebar();
+      store.toggleSidebar();
     });
 
     container.querySelector('#navBackBtn')?.addEventListener('click', () => store.goBack());
@@ -159,6 +166,11 @@ export function initAddressBar(container) {
     container.querySelector('#adblockControlBtn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       store.openModal('shields');
+    });
+
+    container.querySelector('#motrixDownloadBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      store.openMotrixModal();
     });
 
     container.querySelector('#activeSearchEngineBadge')?.addEventListener('click', (e) => {
@@ -335,7 +347,7 @@ export function initAddressBar(container) {
   }
 
   // Subscribe to changes
-  store.subscribe((state, event) => {
+  store.subscribe((event, payload) => {
     if ([
       'TAB_SWITCHED', 
       'NAVIGATION_COMPLETE', 
@@ -345,7 +357,12 @@ export function initAddressBar(container) {
       'SEARCH_ENGINES_UPDATED',
       'BROWSER_MODE_CHANGED',
       'SUPER_PVT_UPDATED',
-      'SESSION_NUKED'
+      'SESSION_NUKED',
+      'MOTRIX_SPEED_TICK',
+      'MOTRIX_TASKS_UPDATED',
+      'MOTRIX_STATUS_CHANGED',
+      'SIDEBAR_TOGGLED',
+      'NOTES_SIDEBAR_TOGGLED'
     ].includes(event)) {
       render();
     }

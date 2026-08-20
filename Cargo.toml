@@ -1,0 +1,61 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/common-types",
+    "crates/auth-service",
+    "crates/db-layer",
+    "crates/controlbuddy-core",
+    "crates/studybuddy-core",
+    "crates/api-gateway",
+    "src-tauri"
+]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["ControlBuddy & StudyBuddy Engineering Team"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# Async Runtime & Concurrency
+tokio = { version = "1.40", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# Web & API Framework
+axum = { version = "0.7", features = ["ws", "macros", "multipart"] }
+tower = { version = "0.5", features = ["util", "timeout", "limit"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "compression-gzip", "fs"] }
+
+# Serialization & JSON
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Database & Cache
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-native-tls", "uuid", "chrono", "json"] }
+redis = { version = "0.26", features = ["tokio-comp", "aio", "connection-manager"] }
+
+# Security & Cryptography
+argon2 = { version = "0.5", features = ["std"] }
+jsonwebtoken = "9.3"
+rand = "0.8"
+
+# Hardware & Protocols
+btleplug = "0.11"
+serialport = "4.5"
+rumqttc = "0.24"
+
+# Observability & Utilities
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+thiserror = "1.0"
+anyhow = "1.0"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Internal Workspace Crates
+common-types = { path = "crates/common-types" }
+auth-service = { path = "crates/auth-service" }
+db-layer = { path = "crates/db-layer" }
+controlbuddy-core = { path = "crates/controlbuddy-core" }
+studybuddy-core = { path = "crates/studybuddy-core" }
