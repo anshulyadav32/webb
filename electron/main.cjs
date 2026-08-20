@@ -1,15 +1,25 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, nativeImage } = require('electron');
 const path = require('path');
 
 let mainWindow;
+const iconPath = path.join(__dirname, 'icon.png');
 
 function createWindow() {
+  if (process.platform === 'darwin' && app.dock) {
+    try {
+      app.dock.setIcon(iconPath);
+    } catch (e) {
+      console.log('Dock icon error:', e);
+    }
+  }
+
   mainWindow = new BrowserWindow({
     width: 1300,
     height: 860,
     minWidth: 900,
     minHeight: 600,
     title: 'WebBuddy',
+    icon: iconPath,
     titleBarStyle: 'hiddenInset', // Native macOS traffic light controls
     trafficLightPosition: { x: 14, y: 14 },
     vibrancy: 'under-window',
