@@ -14,6 +14,19 @@ export function initNewTabPage(container) {
     }
     container.style.display = 'flex';
 
+    const currentMode = store.getBrowserMode();
+
+    if (currentMode === 'incognito') {
+      renderIncognitoNtp(state, activeTab);
+    } else if (currentMode === 'super-pvt') {
+      renderSuperPrivateNtp(state, activeTab);
+    } else {
+      renderStandardNtp(state, activeTab);
+    }
+  }
+
+  // --- 1. Standard NTP ---
+  function renderStandardNtp(state, activeTab) {
     const wallpaper = store.getActiveWallpaper();
     const isBlurred = state.settings.blurWallpaper;
     const totalRules = store.getTotalFilterRulesCount();
@@ -21,6 +34,7 @@ export function initNewTabPage(container) {
     const searchEngines = store.getSearchEngines();
 
     container.style.backgroundImage = `url("${wallpaper.url}")`;
+    container.className = 'ntp-container standard-ntp';
 
     container.innerHTML = `
       <div class="ntp-overlay ${isBlurred ? 'blurred' : ''}"></div>
@@ -193,10 +207,288 @@ export function initNewTabPage(container) {
       </div>
     `;
 
-    setupEvents();
+    setupCommonEvents();
   }
 
-  function setupEvents() {
+  // --- 2. Incognito NTP ("ingoti section") ---
+  function renderIncognitoNtp(state, activeTab) {
+    const defaultEngine = store.getDefaultSearchEngine();
+    container.style.backgroundImage = 'none';
+    container.className = 'ntp-container incognito-ntp';
+
+    container.innerHTML = `
+      <div class="incognito-dashboard-content">
+        <!-- Incognito Header Visor -->
+        <div class="incognito-header-badge">
+          <div class="incognito-visor-icon">
+            ${getIcon('mask', '', 48)}
+          </div>
+          <h1 class="incognito-title">Incognito Browsing Session Active</h1>
+          <p class="incognito-subtitle">
+            WebBuddy isolates your browsing session exclusively in volatile memory (RAM).
+            Your browsing history, cookies, search queries, and cache are destroyed automatically upon close.
+          </p>
+        </div>
+
+        <!-- Incognito Search Box -->
+        <div class="ntp-search-box incognito-search-box" style="max-width:680px; width:100%; margin:0 auto 28px;">
+          <form class="ntp-search-form" id="ntpSearchForm">
+            <span class="incognito-search-icon" style="padding-left:16px; color:#A78BFA; display:flex; align-items:center;">
+              ${getIcon('mask', '', 18)}
+            </span>
+            <input 
+              type="text" 
+              class="ntp-search-input" 
+              id="ntpSearchInput" 
+              placeholder="Search in Incognito Mode with ${escapeAttr(defaultEngine.name)} or enter URL..."
+              autocomplete="off"
+              autofocus
+            />
+            <button type="submit" class="ntp-search-submit-btn" title="Search privately" style="background:#7F00FF; color:#fff;">
+              ${getIcon('search', '', 16)}
+            </button>
+          </form>
+        </div>
+
+        <!-- 4 Security Guarantees Cards -->
+        <div class="incognito-guarantees-grid">
+          <div class="guarantee-card">
+            <div class="guarantee-icon" style="background:rgba(127,0,255,0.18); color:#A78BFA; border-color:rgba(127,0,255,0.35);">
+              ${getIcon('eye-off', '', 22)}
+            </div>
+            <div class="guarantee-info">
+              <h3>Zero History Logged</h3>
+              <p>Pages you visit, search terms, and download logs are never stored to disk.</p>
+            </div>
+          </div>
+
+          <div class="guarantee-card">
+            <div class="guarantee-icon" style="background:rgba(0,242,254,0.18); color:#00F2FE; border-color:rgba(0,242,254,0.35);">
+              ${getIcon('shield-check', '', 22)}
+            </div>
+            <div class="guarantee-info">
+              <h3>Shields Adblock Max</h3>
+              <p>Ad networks, telemetry beacons, and fingerprint scripts are rejected before socket load.</p>
+            </div>
+          </div>
+
+          <div class="guarantee-card">
+            <div class="guarantee-icon" style="background:rgba(16,185,129,0.18); color:#10B981; border-color:rgba(16,185,129,0.35);">
+              ${getIcon('lock', '', 22)}
+            </div>
+            <div class="guarantee-info">
+              <h3>Isolated Cookie Jar</h3>
+              <p>Third-party cookies and local storage tokens are sandboxed and wiped instantly.</p>
+            </div>
+          </div>
+
+          <div class="guarantee-card">
+            <div class="guarantee-icon" style="background:rgba(245,158,11,0.18); color:#F59E0B; border-color:rgba(245,158,11,0.35);">
+              ${getIcon('hard-drive', '', 22)}
+            </div>
+            <div class="guarantee-info">
+              <h3>Ephemeral RAM Storage</h3>
+              <p>Session keys reside only in active RAM. Zero residue persists across system restarts.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Bar: Switch to Tor Super Pvt or Panic Nuke -->
+        <div class="incognito-actions-bar">
+          <button class="incognito-action-btn tor-bridge-btn" id="switchToTorBtn" title="Switch to Super Private Tor Mode">
+            ${getIcon('onion', '', 16)}
+            <span>Upgrade to Super Private (Tor Onion Circuit) →</span>
+          </button>
+
+          <button class="incognito-action-btn panic-nuke-action-btn" id="incognitoPanicBtn" title="Close all private tabs immediately">
+            ${getIcon('nuke', '', 15)}
+            <span>🚨 Close Incognito Session</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    setupCommonEvents();
+
+    container.querySelector('#switchToTorBtn')?.addEventListener('click', () => {
+      store.setBrowserMode('super-pvt');
+    });
+
+    container.querySelector('#incognitoPanicBtn')?.addEventListener('click', () => {
+      store.panicNukeSession();
+    });
+  }
+
+  // --- 3. Super Private NTP ("super pvt" Tor Circuit) ---
+  function renderSuperPrivateNtp(state, activeTab) {
+    const defaultEngine = store.getDefaultSearchEngine();
+    const pvt = state.superPvt || {};
+    const circuit = pvt.circuit || [];
+
+    container.style.backgroundImage = 'none';
+    container.className = 'ntp-container super-pvt-ntp';
+
+    container.innerHTML = `
+      <div class="super-pvt-dashboard-content">
+        <!-- Super Private Cyber Header -->
+        <div class="super-pvt-header-badge">
+          <div class="super-pvt-onion-hologram">
+            ${getIcon('onion', '', 54)}
+          </div>
+          <div class="onion-mode-pill-glow">TOR ONION ROUTING ACTIVE</div>
+          <h1 class="super-pvt-title">Super Private Browsing Window</h1>
+          <p class="super-pvt-subtitle">
+            Your network traffic is encapsulated in 3-layer AES-256 onion encryption and routed through randomized global relays.
+            Your real IP address and device fingerprint are completely masked.
+          </p>
+        </div>
+
+        <!-- Super Private Search Form -->
+        <div class="ntp-search-box super-pvt-search-box" style="max-width:720px; width:100%; margin:0 auto 28px;">
+          <form class="ntp-search-form" id="ntpSearchForm">
+            <span class="super-pvt-search-icon" style="padding-left:16px; color:#C084FC; display:flex; align-items:center;">
+              ${getIcon('onion', '', 18)}
+            </span>
+            <input 
+              type="text" 
+              class="ntp-search-input" 
+              id="ntpSearchInput" 
+              placeholder="Search onion & web anonymously (routed via ${escapeAttr(pvt.exitCountry || 'Tor')})..."
+              autocomplete="off"
+              autofocus
+            />
+            <button type="submit" class="ntp-search-submit-btn" title="Search via Tor" style="background:linear-gradient(135deg, #7F00FF 0%, #00F2FE 100%); color:#fff;">
+              ${getIcon('search', '', 16)}
+            </button>
+          </form>
+        </div>
+
+        <!-- Live Onion Multi-Hop Circuit Visualizer Strip -->
+        <div class="circuit-route-card" id="circuitRouteCard" title="Click to open Circuit Relays Inspector">
+          <div class="circuit-route-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="circuit-pulse-beacon"></span>
+              <span class="circuit-title">Live 3-Hop Encrypted Onion Circuit</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; font-size:12px;">
+              <span style="color:#10B981; font-weight:700;">● ${pvt.anonymityScore || '100% Ultra Stealth'}</span>
+              <span style="color:var(--text-muted);">Ping: ${pvt.circuitPing || '28ms'}</span>
+              <button class="reroute-circuit-mini-btn" id="rerouteCircuitBtn" title="Rotate Tor Identity (Get new Relay Circuit & IP)">
+                ${getIcon('refresh', '', 12)}
+                <span>New Identity</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="circuit-hops-row">
+            <!-- Client Hop -->
+            <div class="circuit-hop-node client-node">
+              <div class="hop-icon-box">${getIcon('home', '', 16)}</div>
+              <div class="hop-node-meta">
+                <span class="hop-role">This Computer</span>
+                <span class="hop-location">Origin Sandbox</span>
+              </div>
+            </div>
+
+            <div class="circuit-hop-connector">
+              <span class="connector-line"></span>
+              <span class="connector-badge">AES-256</span>
+            </div>
+
+            <!-- Guard Node -->
+            <div class="circuit-hop-node">
+              <div class="hop-icon-box guard">${getIcon('shield', '', 16)}</div>
+              <div class="hop-node-meta">
+                <span class="hop-role">${circuit[0]?.role || 'Guard Node'}</span>
+                <span class="hop-location">${circuit[0]?.location || 'Frankfurt, Germany 🇩🇪'}</span>
+              </div>
+            </div>
+
+            <div class="circuit-hop-connector">
+              <span class="connector-line"></span>
+              <span class="connector-badge">Hop 2</span>
+            </div>
+
+            <!-- Middle Relay -->
+            <div class="circuit-hop-node">
+              <div class="hop-icon-box relay">${getIcon('circuit', '', 16)}</div>
+              <div class="hop-node-meta">
+                <span class="hop-role">${circuit[1]?.role || 'Middle Relay'}</span>
+                <span class="hop-location">${circuit[1]?.location || 'Amsterdam, Netherlands 🇳🇱'}</span>
+              </div>
+            </div>
+
+            <div class="circuit-hop-connector">
+              <span class="connector-line"></span>
+              <span class="connector-badge">Exit Hop</span>
+            </div>
+
+            <!-- Exit Node -->
+            <div class="circuit-hop-node exit-node">
+              <div class="hop-icon-box exit">${getIcon('globe', '', 16)}</div>
+              <div class="hop-node-meta">
+                <span class="hop-role">${circuit[2]?.role || 'Exit Relay'}</span>
+                <span class="hop-location" style="color:#00F2FE; font-weight:700;">${circuit[2]?.location || 'Zurich, Switzerland 🇨🇭'}</span>
+                <span class="hop-ip">IP: ${pvt.exitIp || '185.220.101.42'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Super Private Shield Controls -->
+        <div class="super-pvt-features-row">
+          <div class="pvt-feature-pill">
+            <span class="feature-dot green"></span>
+            <span>FARBLE 2.0 Max Anti-Fingerprint (Canvas/WebGL/Audio Noise)</span>
+          </div>
+          <div class="pvt-feature-pill">
+            <span class="feature-dot cyan"></span>
+            <span>Zero WebRTC & DNS Packet Leaks Sandbox</span>
+          </div>
+          <div class="pvt-feature-pill">
+            <span class="feature-dot purple"></span>
+            <span>TLS 1.3 Key Encapsulation</span>
+          </div>
+        </div>
+
+        <!-- Action Bar: Inspect Circuit + Panic Nuke -->
+        <div class="super-pvt-actions-bar">
+          <button class="super-pvt-action-btn inspect-circuit-btn" id="openCircuitModalBtn">
+            ${getIcon('circuit', '', 16)}
+            <span>Inspect Full Onion Relays & Encryption Handshake →</span>
+          </button>
+
+          <button class="super-pvt-action-btn panic-nuke-btn-lg" id="superPvtPanicBtn" title="🚨 Panic Button: Instantly purge all private tabs and RAM">
+            ${getIcon('nuke', '', 16)}
+            <span>🚨 Emergency Panic: Nuke RAM & Tabs</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    setupCommonEvents();
+
+    container.querySelector('#rerouteCircuitBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      store.refreshOnionIdentity();
+      showToast('🧅 Tor Identity Rotated: New relay circuit & exit IP established!');
+      render();
+    });
+
+    container.querySelector('#openCircuitModalBtn')?.addEventListener('click', () => {
+      store.openModal('circuit');
+    });
+
+    container.querySelector('#circuitRouteCard')?.addEventListener('click', () => {
+      store.openModal('circuit');
+    });
+
+    container.querySelector('#superPvtPanicBtn')?.addEventListener('click', () => {
+      store.panicNukeSession();
+    });
+  }
+
+  function setupCommonEvents() {
     // Search Form Submit
     const form = container.querySelector('#ntpSearchForm');
     const input = container.querySelector('#ntpSearchInput');
@@ -236,34 +528,27 @@ export function initNewTabPage(container) {
       store.openModal('settings');
     });
 
-    // Close menu on click outside
-    document.addEventListener('click', (e) => {
-      if (isEngineDropdownOpen && !e.target.closest('.ntp-search-box')) {
-        isEngineDropdownOpen = false;
-        render();
-      }
-    });
-
     // Filter Lists Modal open
     container.querySelector('#openFilterListsBtn')?.addEventListener('click', () => {
       store.openModal('shields');
     });
 
-    // Auto-PiP Video Control Modal open
+    // Dashboard PiP Control Click
     container.querySelector('#dashboardPipControlBtn')?.addEventListener('click', () => {
       store.openModal('videoControls');
     });
 
-    // Top Sites Clicks & Deletion
-    container.querySelectorAll('.top-site-tile[data-site-url]').forEach(el => {
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('.delete-site-btn')) return;
-        const url = el.dataset.siteUrl;
+    // Top Sites Clicks
+    container.querySelectorAll('[data-site-url]').forEach(tile => {
+      tile.addEventListener('click', (e) => {
+        if (e.target.closest('[data-delete-site]')) return;
+        const url = tile.dataset.siteUrl;
         store.navigateToUrl(url);
       });
     });
 
-    container.querySelectorAll('.delete-site-btn').forEach(btn => {
+    // Delete Top Site
+    container.querySelectorAll('[data-delete-site]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.dataset.deleteSite;
@@ -271,60 +556,85 @@ export function initNewTabPage(container) {
       });
     });
 
+    // Add Shortcut Button
     container.querySelector('#addShortcutBtn')?.addEventListener('click', () => {
       store.openModal('addShortcut');
     });
 
-    // Wallpaper switch & Customization
+    // Next Wallpaper Button
     container.querySelector('#nextWallpaperBtn')?.addEventListener('click', () => {
       store.nextWallpaper();
     });
 
+    // Customize Dashboard Button
     container.querySelector('#customizeDashboardBtn')?.addEventListener('click', () => {
       store.openModal('settings');
     });
   }
 
-  // Live Clock Updater
-  if (!clockTimer) {
+  function startClock() {
+    if (clockTimer) clearInterval(clockTimer);
     clockTimer = setInterval(() => {
       const clockEl = container.querySelector('#ntpClock');
-      if (clockEl) {
-        const format = store.getState().settings.clockFormat;
-        clockEl.innerHTML = getFormattedTime(format);
+      const greetingEl = container.querySelector('#ntpGreeting');
+      const state = store.getState();
+      if (clockEl && state.settings.showClock) {
+        clockEl.textContent = getFormattedTime(state.settings.clockFormat);
+      }
+      if (greetingEl && state.settings.showClock) {
+        greetingEl.textContent = getGreeting();
       }
     }, 1000);
   }
 
-  // Subscribe to changes
+  function getFormattedTime(format = '12h') {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    if (format === '12h') {
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 should be 12
+      return `${hours}:${minutes} ${ampm}`;
+    }
+
+    return `${String(hours).padStart(2, '0')}:${minutes}:${seconds}`;
+  }
+
+  function getGreeting() {
+    const hours = new Date().getHours();
+    const mode = store.getBrowserMode();
+
+    if (mode === 'super-pvt') return 'Super Private Onion Terminal • 100% Encrypted';
+    if (mode === 'incognito') return 'Incognito Private Space • No History Saved';
+
+    if (hours < 12) return 'Good Morning, WebBuddy Explorer';
+    if (hours < 18) return 'Good Afternoon, WebBuddy Explorer';
+    return 'Good Evening, WebBuddy Explorer';
+  }
+
   store.subscribe((state, event) => {
-    if (['TAB_SWITCHED', 'NAVIGATION_COMPLETE', 'WALLPAPER_CHANGED', 'SHIELDS_STATS_UPDATED', 'TOP_SITES_UPDATED', 'SETTINGS_UPDATED', 'FILTER_LIST_TOGGLED', 'SEARCH_ENGINE_CHANGED', 'SEARCH_ENGINES_UPDATED'].includes(event)) {
+    if ([
+      'TAB_SWITCHED', 
+      'WALLPAPER_CHANGED', 
+      'SETTINGS_UPDATED', 
+      'TOP_SITES_UPDATED', 
+      'SHIELDS_STATS_UPDATED', 
+      'SEARCH_ENGINE_CHANGED', 
+      'SEARCH_ENGINES_UPDATED',
+      'BROWSER_MODE_CHANGED',
+      'SUPER_PVT_UPDATED',
+      'SESSION_NUKED',
+      'MEDIA_PIP_TOGGLED'
+    ].includes(event)) {
       render();
     }
   });
 
   render();
-}
-
-function getFormattedTime(format = '12h') {
-  const now = new Date();
-  if (format === '24h') {
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  }
-  let hours = now.getHours();
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const period = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  return `${hours}:${minutes} <span style="font-size:16px; font-weight:500; opacity:0.8;">${period}</span>`;
-}
-
-function getGreeting() {
-  const hours = new Date().getHours();
-  if (hours < 12) return 'Good Morning, WebBuddy Explorer';
-  if (hours < 18) return 'Good Afternoon, WebBuddy Explorer';
-  return 'Good Evening, WebBuddy Explorer';
+  startClock();
 }
 
 function escapeHtml(str) {

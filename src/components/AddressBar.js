@@ -11,8 +11,17 @@ export function initAddressBar(container) {
     const blockedCount = activeTab.totalBlockedCount || 0;
     const defaultEngine = store.getDefaultSearchEngine();
 
+    const currentMode = store.getBrowserMode();
+    const isIncognito = currentMode === 'incognito';
+    const isSuperPvt = currentMode === 'super-pvt';
+    const placeholderText = isSuperPvt 
+      ? `Search anonymously through ${state.superPvt?.exitCountry || 'Onion Circuit'}...`
+      : isIncognito 
+        ? `Search privately in Incognito (zero traces saved)...`
+        : `Search with ${escapeAttr(defaultEngine.name)} or enter website address...`;
+
     container.innerHTML = `
-      <div class="browser-navbar">
+      <div class="browser-navbar ${currentMode !== 'standard' ? 'navbar-' + currentMode : ''}">
         <div class="nav-buttons">
           <button class="nav-btn" id="notesSidebarToggleBtn" title="Toggle Notes Sidebar (Cmd+N)">
             ${getIcon('file-text', '', 15)}
@@ -31,8 +40,23 @@ export function initAddressBar(container) {
           </button>
         </div>
 
+        <!-- Mode Specific Visual Indicator -->
+        ${isIncognito ? `
+          <div class="navbar-mode-pill incognito" title="Incognito Mode Active: Zero History & RAM Storage">
+            ${getIcon('mask', '', 14)}
+            <span>Incognito</span>
+          </div>
+        ` : ''}
+
+        ${isSuperPvt ? `
+          <button class="navbar-mode-pill super-pvt" id="circuitBadgeBtn" title="Tor Onion Circuit Active (${state.superPvt.exitCountry}) • Click to inspect relays">
+            ${getIcon('onion', '', 14)}
+            <span>Tor: ${escapeHtml(state.superPvt.exitCountry)}</span>
+          </button>
+        ` : ''}
+
         <div class="omnibox-wrapper">
-          <div class="omnibox">
+          <div class="omnibox ${isSuperPvt ? 'omnibox-super-pvt' : isIncognito ? 'omnibox-incognito' : ''}">
             <!-- WebBuddy Shields Ad & Tracker Blocker Badge -->
             <button class="shield-badge-btn ${!isShieldsOn ? 'shields-down' : ''}" id="shieldBadgeBtn" title="Ad & Tracker Blocker: ${isShieldsOn ? 'PROTECTED' : 'PAUSED'}">
               ${getIcon('shield', '', 14)}
@@ -56,7 +80,7 @@ export function initAddressBar(container) {
               type="text" 
               class="omnibox-input" 
               id="omniboxInput" 
-              placeholder="Search with ${escapeAttr(defaultEngine.name)} or enter website address..." 
+              placeholder="${escapeAttr(placeholderText)}" 
               value="${escapeAttr(displayUrl)}"
               autocomplete="off"
               spellcheck="false"
@@ -73,8 +97,15 @@ export function initAddressBar(container) {
           <div class="omnibox-dropdown" id="omniboxDropdown" style="display: none;"></div>
         </div>
 
-        <!-- Action Buttons: Ad Blocker + Video PiP Overlay -->
+        <!-- Action Buttons: Ad Blocker + Video PiP Overlay + Panic Button -->
         <div class="browser-actions">
+          ${(isIncognito || isSuperPvt) ? `
+            <button class="action-pill-btn panic-btn" id="panicNukeBtn" title="🚨 EMERGENCY PANIC: Destroy all private tabs & wipe volatile RAM instantly">
+              ${getIcon('nuke', '', 14)}
+              <span>Nuke Session</span>
+            </button>
+          ` : ''}
+
           <button class="action-pill-btn" id="adblockControlBtn" style="border-color:rgba(0,242,254,0.3); color:#00F2FE;" title="Adblocker & Filter Lists">
             ${getIcon('shield-check', '', 14)}
             <span>Ad Blocker ON</span>
@@ -146,6 +177,17 @@ export function initAddressBar(container) {
         store.addBookmark(activeTab.title, activeTab.url);
         showToast('⭐ Bookmark saved!');
       }
+    });
+
+    container.querySelector('#circuitBadgeBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      store.openModal('circuit');
+    });
+
+    container.querySelector('#panicNukeBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      store.panicNukeSession();
+      showToast('🚨 Emergency Panic: Private RAM purged and tabs destroyed!');
     });
 
     // Omnibox Typing & Autocomplete
@@ -294,7 +336,17 @@ export function initAddressBar(container) {
 
   // Subscribe to changes
   store.subscribe((state, event) => {
-    if (['TAB_SWITCHED', 'NAVIGATION_COMPLETE', 'SHIELDS_TOGGLED', 'SHIELDS_STATS_UPDATED', 'SEARCH_ENGINE_CHANGED', 'SEARCH_ENGINES_UPDATED'].includes(event)) {
+    if ([
+      'TAB_SWITCHED', 
+      'NAVIGATION_COMPLETE', 
+      'SHIELDS_TOGGLED', 
+      'SHIELDS_STATS_UPDATED', 
+      'SEARCH_ENGINE_CHANGED', 
+      'SEARCH_ENGINES_UPDATED',
+      'BROWSER_MODE_CHANGED',
+      'SUPER_PVT_UPDATED',
+      'SESSION_NUKED'
+    ].includes(event)) {
       render();
     }
   });

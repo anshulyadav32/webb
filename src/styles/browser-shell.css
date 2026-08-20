@@ -439,3 +439,378 @@
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* ==========================================================
+   Browser Mode Switcher (Standard / Incognito / Super Private)
+   ========================================================== */
+.browser-mode-switcher {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 4px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.mode-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--trans-fast);
+  white-space: nowrap;
+}
+
+.mode-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.mode-tab-btn.active {
+  background: rgba(0, 242, 254, 0.15);
+  color: #00F2FE;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}
+
+.mode-tab-btn.incognito-btn.active {
+  background: rgba(168, 85, 247, 0.2);
+  color: #C084FC;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+}
+
+.mode-tab-btn.super-pvt-btn.active {
+  background: linear-gradient(135deg, rgba(127, 0, 255, 0.3) 0%, rgba(0, 242, 254, 0.3) 100%);
+  color: #E2E8F0;
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  box-shadow: 0 0 14px rgba(127, 0, 255, 0.35);
+}
+
+/* ==========================================================
+   Tab Groups & Organization
+   ========================================================== */
+.tab-group-container {
+  display: inline-flex;
+  align-items: flex-end;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 2px solid var(--group-color, #00F2FE);
+  border-radius: 8px 8px 0 0;
+  padding: 0 2px;
+  gap: 2px;
+  margin-right: 4px;
+  transition: all var(--trans-fast);
+}
+
+.tab-group-container:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tab-group-container.collapsed {
+  background: transparent;
+  border-bottom: none;
+}
+
+.tab-group-header-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  height: 28px;
+  margin-bottom: 3px;
+  background: rgba(20, 24, 38, 0.85);
+  border: 1px solid var(--group-color, #00F2FE);
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--trans-fast);
+  white-space: nowrap;
+}
+
+.tab-group-header-pill:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 10px var(--group-color);
+  transform: translateY(-0.5px);
+}
+
+.group-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.group-count-badge {
+  font-size: 9.5px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1px 5px;
+  border-radius: 8px;
+}
+
+.group-menu-trigger-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.group-menu-trigger-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tab-group-tabs {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  transition: all 0.2s ease;
+}
+
+.tab-group-tabs.hidden-group-tabs {
+  display: none !important;
+}
+
+.tab-strip-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.new-group-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--trans-fast);
+}
+
+.new-group-btn:hover {
+  background: rgba(0, 242, 254, 0.1);
+  border-color: rgba(0, 242, 254, 0.4);
+  color: #00F2FE;
+}
+
+/* ==========================================================
+   Context Menus & Group Popovers
+   ========================================================== */
+.tab-context-menu, .group-menu-popover {
+  position: fixed;
+  background: #181B28;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 242, 254, 0.08);
+  z-index: 10000;
+  min-width: 220px;
+  padding: 6px;
+  animation: fadeIn 0.12s ease-out;
+  backdrop-filter: blur(16px);
+}
+
+.context-menu-header {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-menu-divider, .group-popover-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
+}
+
+.context-menu-item, .group-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--trans-fast);
+}
+
+.context-menu-item:hover, .group-popover-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.context-menu-item.danger:hover, .group-popover-item.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+.context-menu-submenu-item {
+  position: relative;
+}
+
+.submenu-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.submenu-label:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.context-submenu {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background: #181B28;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  min-width: 170px;
+  padding: 6px;
+}
+
+.context-menu-submenu-item:hover .context-submenu {
+  display: block;
+}
+
+.group-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 4px;
+}
+
+.popover-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.popover-close-btn:hover {
+  color: #fff;
+}
+
+/* ==========================================================
+   Mode-Specific Navbar Theming & Panic Button
+   ========================================================== */
+.window-top-bar.mode-incognito {
+  background: #0E0F17;
+  border-bottom-color: rgba(168, 85, 247, 0.25);
+}
+
+.window-top-bar.mode-super-pvt {
+  background: #0B0B14;
+  border-bottom-color: rgba(0, 242, 254, 0.3);
+}
+
+.browser-navbar.navbar-incognito {
+  background: #12131F;
+}
+
+.browser-navbar.navbar-super-pvt {
+  background: #0D0E1A;
+}
+
+.navbar-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+.navbar-mode-pill.incognito {
+  background: rgba(168, 85, 247, 0.15);
+  color: #C084FC;
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+.navbar-mode-pill.super-pvt {
+  background: linear-gradient(135deg, rgba(127, 0, 255, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
+  color: #00F2FE;
+  border-color: rgba(0, 242, 254, 0.35);
+  cursor: pointer;
+  transition: all var(--trans-fast);
+}
+
+.navbar-mode-pill.super-pvt:hover {
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
+  transform: translateY(-0.5px);
+}
+
+.omnibox.omnibox-incognito {
+  border-color: rgba(168, 85, 247, 0.3);
+  background: #0A0A10;
+}
+
+.omnibox.omnibox-super-pvt {
+  border-color: rgba(0, 242, 254, 0.35);
+  background: #080912;
+  box-shadow: inset 0 0 12px rgba(127, 0, 255, 0.12);
+}
+
+.action-pill-btn.panic-btn {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #EF4444;
+  font-weight: 700;
+  animation: pulseGlow 2.5s infinite;
+}
+
+.action-pill-btn.panic-btn:hover {
+  background: #EF4444;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.6);
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.6); }
+}
+

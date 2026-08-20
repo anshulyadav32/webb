@@ -20,6 +20,8 @@ import { initAddShortcutModal } from './components/AddShortcutModal.js';
 import { initNotesSidebar } from './components/NotesSidebar.js';
 import { initVideoControlModal } from './components/VideoControlModal.js';
 import { initFloatingPipPlayer } from './components/FloatingPipPlayer.js';
+import { initCircuitModal } from './components/CircuitModal.js';
+import { initTabGroupModal } from './components/TabGroupModal.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const app = document.getElementById('app');
@@ -52,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="videoControlModalContainer"></div>
     <div id="settingsModalContainer"></div>
     <div id="addShortcutModalContainer"></div>
+    <div id="circuitModalContainer"></div>
+    <div id="tabGroupModalContainer"></div>
   `;
 
   // Initialize modular components
@@ -67,29 +71,54 @@ document.addEventListener('DOMContentLoaded', () => {
   initNotesSidebar(document.getElementById('notesSidebarContainer'));
   initVideoControlModal(document.getElementById('videoControlModalContainer'));
   initFloatingPipPlayer(document.getElementById('floatingPipContainer'));
+  initCircuitModal(document.getElementById('circuitModalContainer'));
+  initTabGroupModal(document.getElementById('tabGroupModalContainer'));
 
-  // Global Keyboard Shortcuts (Browser + Video Controls)
+  // Global Keyboard Shortcuts (Browser + Modes + Groups + Video Controls)
   window.addEventListener('keydown', (e) => {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
     const activeElement = document.activeElement;
     const isTyping = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
 
+    // Ctrl/Cmd + Shift + N: Toggle Incognito Mode
+    if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'n') {
+      e.preventDefault();
+      const current = store.getBrowserMode();
+      store.setBrowserMode(current === 'incognito' ? 'standard' : 'incognito');
+      return;
+    }
+
+    // Ctrl/Cmd + Shift + P: Toggle Super Private (Tor) Mode
+    if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      const current = store.getBrowserMode();
+      store.setBrowserMode(current === 'super-pvt' ? 'standard' : 'super-pvt');
+      return;
+    }
+
+    // Ctrl/Cmd + Shift + G: Create New Tab Group
+    if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'g') {
+      e.preventDefault();
+      store.openTabGroupModal(null);
+      return;
+    }
+
     // Ctrl/Cmd + T: New Tab
-    if (cmdOrCtrl && e.key.toLowerCase() === 't') {
+    if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 't') {
       e.preventDefault();
       store.createTab();
       return;
     }
     // Ctrl/Cmd + W: Close Active Tab
-    if (cmdOrCtrl && e.key.toLowerCase() === 'w') {
+    if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'w') {
       e.preventDefault();
       const activeTab = store.getActiveTab();
       if (activeTab) store.closeTab(activeTab.id);
       return;
     }
     // Ctrl/Cmd + L: Focus Omnibox
-    if (cmdOrCtrl && e.key.toLowerCase() === 'l') {
+    if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'l') {
       e.preventDefault();
       const omni = document.getElementById('omniboxInput');
       if (omni) {
@@ -99,13 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     // Ctrl/Cmd + N: Toggle Notes Sidebar
-    if (cmdOrCtrl && e.key.toLowerCase() === 'n' && !e.shiftKey) {
+    if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'n') {
       e.preventDefault();
       store.toggleNotesSidebar();
       return;
     }
     // Ctrl/Cmd + S: Toggle Shields Modal
-    if (cmdOrCtrl && e.key.toLowerCase() === 's') {
+    if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 's') {
       e.preventDefault();
       store.openModal('shields');
       return;
@@ -174,5 +203,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  console.log('🎬 WebBuddy Video Controls & Media Hub initialized successfully!');
+  console.log('🎬 WebBuddy with Incognito, Tab Groups & Super Private Tor initialized successfully!');
 });

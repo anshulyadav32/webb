@@ -19,6 +19,10 @@ class Store {
     const savedNotes = this.loadFromStorage('webbuddy_saved_notes', DEFAULT_NOTES);
     const savedFilterLists = this.loadFromStorage('webbuddy_filter_lists', DEFAULT_FILTER_LISTS);
     const savedSearchEngines = this.loadFromStorage('webbuddy_search_engines', DEFAULT_SEARCH_ENGINES);
+    const savedTabGroups = this.loadFromStorage('webbuddy_tab_groups', [
+      { id: 'group-work', name: 'Work 💼', color: '#00F2FE', collapsed: false, mode: 'standard' },
+      { id: 'group-privacy', name: 'Privacy & Tech 🛡️', color: '#7F00FF', collapsed: false, mode: 'standard' }
+    ]);
     const savedSettings = this.loadFromStorage('webbuddy_settings', {
       showShieldsStats: true,
       showTopSites: true,
@@ -32,6 +36,32 @@ class Store {
     });
 
     this.state = {
+      // Browser Mode: 'standard' | 'incognito' | 'super-pvt'
+      browserMode: 'standard',
+
+      // Tab Groups
+      tabGroups: savedTabGroups,
+
+      // Super Private (Tor / Onion Routing Circuit)
+      superPvt: {
+        onionConnected: true,
+        exitCountry: 'Zurich, Switzerland 🇨🇭',
+        exitIp: '185.220.101.42',
+        circuitPing: '28ms',
+        anonymityScore: '100% Ultra Stealth',
+        circuit: [
+          { role: 'Guard Node', location: 'Frankfurt, Germany 🇩🇪', ip: '141.95.12.8', ping: '14ms', status: 'Active (Layer 1 AES-256)' },
+          { role: 'Middle Relay', location: 'Amsterdam, Netherlands 🇳🇱', ip: '194.26.29.112', ping: '21ms', status: 'Active (Layer 2 AES-256)' },
+          { role: 'Exit Relay', location: 'Zurich, Switzerland 🇨🇭', ip: '185.220.101.42', ping: '28ms', status: 'Active (Layer 3 Decrypted Hop)' }
+        ],
+        fingerprintDefense: 'MAX (Farbling 2.0)',
+        canvasNoise: true,
+        audioNoise: true,
+        webRtcLeakBlocked: true,
+        dnsOverHttps: true,
+        cookiesPurgedOnClose: true
+      },
+
       // Search Engines
       searchEngines: savedSearchEngines,
       defaultSearchEngine: savedSettings.defaultSearchEngine || 'google',
@@ -45,6 +75,8 @@ class Store {
           favicon: 'shield',
           pinned: false,
           active: true,
+          mode: 'standard',
+          groupId: null,
           adsBlockedCount: 0,
           trackersBlockedCount: 0,
           totalBlockedCount: 0,
@@ -104,7 +136,8 @@ class Store {
       },
 
       // UI Active Popups / Modals
-      activeModal: null, // 'shields' | 'settings' | 'addShortcut' | 'videoControls'
+      activeModal: null, // 'shields' | 'settings' | 'addShortcut' | 'videoControls' | 'circuit' | 'tabGroup'
+      activeGroupEditing: null,
 
       // Settings
       settings: savedSettings
@@ -143,8 +176,27 @@ class Store {
     return this.state;
   }
 
+  getBrowserMode() {
+    return this.state.browserMode || 'standard';
+  }
+
+  getVisibleTabs() {
+    const currentMode = this.state.browserMode || 'standard';
+    return this.state.tabs.filter(t => (t.mode || 'standard') === currentMode);
+  }
+
   getActiveTab() {
-    return this.state.tabs.find(t => t.id === this.state.activeTabId) || this.state.tabs[0];
+    const visible = this.getVisibleTabs();
+    return visible.find(t => t.id === this.state.activeTabId) || visible[0] || this.state.tabs[0];
+  }
+
+  getTabGroups() {
+    const currentMode = this.state.browserMode || 'standard';
+    return this.state.tabGroups.filter(g => (g.mode || 'standard') === currentMode);
+  }
+
+  getTabGroupById(groupId) {
+    return this.state.tabGroups.find(g => g.id === groupId);
   }
 
   getActiveWallpaper() {
@@ -157,23 +209,80 @@ class Store {
       .reduce((sum, fl) => sum + fl.rulesCount, 0);
   }
 
-  // --- Actions ---
+  // --- Browser Mode Switching ---
+  setBrowserMode(mode) {
+    if (!['standard', 'incognito', 'super-pvt'].includes(mode)) return;
+    this.state.browserMode = mode;
+
+    // Check if there is already a tab in this mode
+    const modeTabs = this.state.tabs.filter(t => (t.mode || 'standard') === mode);
+    if (modeTabs.length === 0) {
+      // Create initial new tab in this mode
+      const isSuper = mode === 'super-pvt';
+      const isIncognito = mode === 'incognito';
+      const newTabId = 'tab-' + mode + '-' + Date.now();
+      const newTab = {
+        id: newTabId,
+        title: isSuper ? 'Super Private Tab (Tor)' : isIncognito ? 'Incognito Tab' : 'New Tab',
+        url: 'brave://newtab',
+        type: 'ntp',
+        favicon: isSuper ? 'onion' : isIncognito ? 'mask' : 'shield',
+        pinned: false,
+        active: true,
+        mode: mode,
+        groupId: null,
+        adsBlockedCount: isSuper ? 12 : isIncognito ? 8 : 0,
+        trackersBlockedCount: isSuper ? 24 : isIncognito ? 16 : 0,
+        totalBlockedCount: isSuper ? 36 : isIncognito ? 24 : 0,
+        history: ['brave://newtab'],
+        historyIndex: 0,
+        isLoading: false
+      };
+      this.state.tabs.push(newTab);
+      this.state.activeTabId = newTabId;
+    } else {
+      const currentActive = modeTabs.find(t => t.active) || modeTabs[0];
+      this.state.tabs.forEach(t => {
+        t.active = (t.id === currentActive.id);
+      });
+      this.state.activeTabId = currentActive.id;
+    }
+
+    this.notify('BROWSER_MODE_CHANGED', mode);
+    this.notify('TAB_SWITCHED', this.getActiveTab());
+  }
 
   // Tab Management
-  createTab(url = 'brave://newtab', title = 'New Tab') {
+  createTab(url = 'brave://newtab', title = 'New Tab', groupId = null) {
     const isNtp = url === 'brave://newtab';
     const newId = 'tab-' + Date.now();
-    const adsNow = isNtp ? 0 : Math.floor(Math.random() * 8) + 3;
-    const trackersNow = isNtp ? 0 : Math.floor(Math.random() * 12) + 6;
+    const mode = this.state.browserMode || 'standard';
+    const isSuper = mode === 'super-pvt';
+    const isIncognito = mode === 'incognito';
+
+    const adsNow = isNtp ? (isSuper ? 6 : isIncognito ? 3 : 0) : Math.floor(Math.random() * 8) + 3;
+    const trackersNow = isNtp ? (isSuper ? 14 : isIncognito ? 8 : 0) : Math.floor(Math.random() * 12) + 6;
+
+    let defaultFavicon = 'globe';
+    if (isNtp) {
+      defaultFavicon = isSuper ? 'onion' : isIncognito ? 'mask' : 'shield';
+    }
+
+    let defaultTitle = title;
+    if (isNtp) {
+      defaultTitle = isSuper ? 'Super Private Tab' : isIncognito ? 'Incognito Tab' : 'New Tab';
+    }
 
     const newTab = {
       id: newId,
-      title: title,
+      title: defaultTitle,
       url: url,
       type: isNtp ? 'ntp' : this.resolveUrlType(url),
-      favicon: isNtp ? 'shield' : 'globe',
+      favicon: defaultFavicon,
       pinned: false,
       active: true,
+      mode: mode,
+      groupId: groupId,
       adsBlockedCount: adsNow,
       trackersBlockedCount: trackersNow,
       totalBlockedCount: adsNow + trackersNow,
@@ -182,7 +291,13 @@ class Store {
       isLoading: false
     };
 
-    this.state.tabs.forEach(t => t.active = false);
+    // Deactivate current tabs in this mode
+    this.state.tabs.forEach(t => {
+      if ((t.mode || 'standard') === mode) {
+        t.active = false;
+      }
+    });
+
     this.state.tabs.push(newTab);
     this.state.activeTabId = newId;
 
@@ -197,13 +312,21 @@ class Store {
     const tab = this.state.tabs.find(t => t.id === tabId);
     if (!tab) return;
 
+    if (tab.mode && tab.mode !== this.state.browserMode) {
+      this.state.browserMode = tab.mode;
+      this.notify('BROWSER_MODE_CHANGED', tab.mode);
+    }
+
     this.state.tabs.forEach(t => t.active = (t.id === tabId));
     this.state.activeTabId = tabId;
     this.notify('TAB_SWITCHED', tab);
   }
 
   closeTab(tabId) {
-    if (this.state.tabs.length === 1) {
+    const mode = this.state.browserMode || 'standard';
+    const visible = this.getVisibleTabs();
+
+    if (visible.length === 1 && visible[0].id === tabId) {
       this.navigateToUrl('brave://newtab');
       return;
     }
@@ -215,9 +338,14 @@ class Store {
     this.state.tabs.splice(index, 1);
 
     if (wasActive) {
-      const nextTab = this.state.tabs[Math.max(0, index - 1)];
-      nextTab.active = true;
-      this.state.activeTabId = nextTab.id;
+      const remainingVisible = this.getVisibleTabs();
+      if (remainingVisible.length > 0) {
+        const nextTab = remainingVisible[Math.max(0, remainingVisible.length - 1)];
+        nextTab.active = true;
+        this.state.activeTabId = nextTab.id;
+      } else {
+        this.createTab();
+      }
     }
 
     this.notify('TAB_CLOSED', { tabId, activeTabId: this.state.activeTabId });
@@ -230,6 +358,161 @@ class Store {
       this.state.tabs.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
       this.notify('TAB_PINNED', tab);
     }
+  }
+
+  duplicateTab(tabId) {
+    const tab = this.state.tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    this.createTab(tab.url, tab.title, tab.groupId);
+  }
+
+  moveTabToMode(tabId, targetMode) {
+    const tab = this.state.tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    tab.mode = targetMode;
+    tab.groupId = null;
+    this.setBrowserMode(targetMode);
+    this.switchTab(tabId);
+  }
+
+  // --- Tab Groups Management ---
+  createTabGroup(name = 'New Group', color = '#00F2FE', initialTabId = null) {
+    const mode = this.state.browserMode || 'standard';
+    const newGroupId = 'group-' + Date.now();
+    const newGroup = {
+      id: newGroupId,
+      name: name.trim() || 'New Group',
+      color: color || '#00F2FE',
+      collapsed: false,
+      mode: mode
+    };
+
+    this.state.tabGroups.push(newGroup);
+
+    if (initialTabId) {
+      const tab = this.state.tabs.find(t => t.id === initialTabId);
+      if (tab) tab.groupId = newGroupId;
+    }
+
+    this.saveToStorage('webbuddy_tab_groups', this.state.tabGroups);
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+    return newGroup;
+  }
+
+  updateTabGroup(groupId, updates) {
+    const group = this.state.tabGroups.find(g => g.id === groupId);
+    if (!group) return;
+
+    if (updates.name !== undefined) group.name = updates.name.trim() || group.name;
+    if (updates.color !== undefined) group.color = updates.color;
+    if (updates.collapsed !== undefined) group.collapsed = updates.collapsed;
+
+    this.saveToStorage('webbuddy_tab_groups', this.state.tabGroups);
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+  }
+
+  toggleGroupCollapse(groupId) {
+    const group = this.state.tabGroups.find(g => g.id === groupId);
+    if (!group) return;
+    group.collapsed = !group.collapsed;
+    this.saveToStorage('webbuddy_tab_groups', this.state.tabGroups);
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+  }
+
+  deleteTabGroup(groupId, closeTabs = false) {
+    const index = this.state.tabGroups.findIndex(g => g.id === groupId);
+    if (index === -1) return;
+
+    this.state.tabGroups.splice(index, 1);
+
+    if (closeTabs) {
+      this.state.tabs = this.state.tabs.filter(t => t.groupId !== groupId);
+      if (this.getVisibleTabs().length === 0) {
+        this.createTab();
+      } else {
+        const active = this.getActiveTab();
+        if (active) this.switchTab(active.id);
+      }
+    } else {
+      this.state.tabs.forEach(t => {
+        if (t.groupId === groupId) t.groupId = null;
+      });
+    }
+
+    this.saveToStorage('webbuddy_tab_groups', this.state.tabGroups);
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+    this.notify('TAB_CLOSED', {});
+  }
+
+  addTabToGroup(tabId, groupId) {
+    const tab = this.state.tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    tab.groupId = groupId;
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+  }
+
+  removeTabFromGroup(tabId) {
+    const tab = this.state.tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    tab.groupId = null;
+    this.notify('TAB_GROUPS_UPDATED', this.state.tabGroups);
+  }
+
+  // --- Super Private / Tor Circuit Management ---
+  refreshOnionIdentity() {
+    const RELAYS = [
+      { location: 'Zurich, Switzerland 🇨🇭', ip: '185.220.101.42' },
+      { location: 'Reykjavik, Iceland 🇮🇸', ip: '185.246.188.67' },
+      { location: 'Stockholm, Sweden 🇸🇪', ip: '193.189.100.18' },
+      { location: 'Frankfurt, Germany 🇩🇪', ip: '141.95.12.8' },
+      { location: 'Amsterdam, Netherlands 🇳🇱', ip: '194.26.29.112' },
+      { location: 'Helsinki, Finland 🇫🇮', ip: '95.217.163.24' },
+      { location: 'Toronto, Canada 🇨🇦', ip: '198.98.51.109' },
+      { location: 'Singapore 🇸🇬', ip: '139.99.120.45' }
+    ];
+
+    // Pick 3 unique relays
+    const shuffled = [...RELAYS].sort(() => 0.5 - Math.random());
+    const guard = shuffled[0];
+    const middle = shuffled[1];
+    const exit = shuffled[2];
+
+    const ping = Math.floor(Math.random() * 25) + 18;
+
+    this.state.superPvt = {
+      ...this.state.superPvt,
+      exitCountry: exit.location,
+      exitIp: exit.ip,
+      circuitPing: `${ping}ms`,
+      circuit: [
+        { role: 'Guard Node', location: guard.location, ip: guard.ip, ping: `${Math.floor(ping * 0.4)}ms`, status: 'Active (Layer 1 AES-256)' },
+        { role: 'Middle Relay', location: middle.location, ip: middle.ip, ping: `${Math.floor(ping * 0.7)}ms`, status: 'Active (Layer 2 AES-256)' },
+        { role: 'Exit Relay', location: exit.location, ip: exit.ip, ping: `${ping}ms`, status: 'Active (Layer 3 Decrypted Hop)' }
+      ]
+    };
+
+    this.notify('SUPER_PVT_UPDATED', this.state.superPvt);
+  }
+
+  // --- Panic Nuke Session (Emergency Purge) ---
+  panicNukeSession() {
+    // Destroy all private tabs from memory
+    this.state.tabs = this.state.tabs.filter(t => (t.mode || 'standard') === 'standard');
+    if (this.state.tabs.length === 0) {
+      this.createTab('brave://newtab', 'New Tab', null);
+    }
+
+    this.state.browserMode = 'standard';
+    const active = this.state.tabs[0];
+    active.active = true;
+    this.state.activeTabId = active.id;
+
+    // Trigger circuit rotation in background
+    this.refreshOnionIdentity();
+
+    this.notify('SESSION_NUKED', { message: 'All private tabs, cookies & RAM caches destroyed.' });
+    this.notify('BROWSER_MODE_CHANGED', 'standard');
+    this.notify('TAB_SWITCHED', active);
   }
 
   // Search Engine Management
@@ -711,8 +994,15 @@ class Store {
     this.notify('MODAL_CHANGED', this.state.activeModal);
   }
 
+  openTabGroupModal(groupId = null) {
+    this.state.activeGroupEditing = groupId;
+    this.state.activeModal = 'tabGroup';
+    this.notify('MODAL_CHANGED', 'tabGroup');
+  }
+
   closeModal() {
     this.state.activeModal = null;
+    this.state.activeGroupEditing = null;
     this.notify('MODAL_CHANGED', null);
   }
 
